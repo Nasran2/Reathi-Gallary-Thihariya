@@ -43,9 +43,34 @@ Route::middleware('auth')->group(function () {
     Route::get('/reports/profit-loss', [ReportController::class, 'profit'])->name('reports.profit');
     Route::get('/reports/stock-valuation', [ReportController::class, 'valuation'])->name('reports.valuation');
     Route::get('/reports/dead-stock', [ReportController::class, 'deadStock'])->name('reports.dead');
-    Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
+    Route::get('/settings/{section?}', [SettingsController::class, 'show'])->name('settings.show');
     Route::put('/settings', [SettingsController::class, 'update'])->name('settings.update');
     Route::post('/settings/units', [SettingsController::class, 'unit'])->name('settings.units.store');
     Route::post('/settings/categories', [SettingsController::class, 'category'])->name('settings.categories.store');
     Route::post('/settings/payment-methods',[SettingsController::class, 'paymentMethod'])->name('settings.payment-methods.store');
+    Route::post('/settings/payment-methods',[SettingsController::class, 'paymentMethod'])->name('settings.payment-methods.store');
+
+    // Placeholder routes for new sidebar structure
+    Route::get('/users', fn() => 'Users Page')->name('users.index');
+    Route::get('/roles', fn() => 'Roles Page')->name('roles.index');
+    Route::get('/categories', fn() => 'Categories Page')->name('categories.index');
+    Route::get('/units', fn() => 'Units Page')->name('units.index');
+    Route::get('/brands', fn() => 'Brands Page')->name('brands.index');
+    Route::get('/purchases/returns', fn() => 'Purchase Returns Page')->name('purchases.returns');
+    Route::get('/sales/returns', fn() => 'Sales Returns Page')->name('sales.returns');
+    Route::get('/distribution/vehicles', fn() => 'Vehicles Page')->name('distribution.vehicles');
+    Route::get('/distribution/drivers', fn() => 'Drivers Page')->name('distribution.drivers');
+    Route::get('/distribution/routes', fn() => 'Routes Page')->name('distribution.routes');
+    Route::get('/transfers', fn() => 'Transfers Page')->name('transfers.index');
+    Route::get('/expenses/categories', fn() => 'Expense Categories Page')->name('expenses.categories');
+    Route::get('/accounting/accounts', fn() => 'Accounts Page')->name('accounting.accounts');
+    Route::get('/accounting/deposits', fn() => 'Deposits Page')->name('accounting.deposits');
+    Route::get('/accounting/transfers', fn() => 'Accounting Transfers Page')->name('accounting.transfers');
+    Route::get('/cheques/received', fn() => 'Received Cheques Page')->name('cheques.received');
+    Route::get('/cheques/issued', fn() => 'Issued Cheques Page')->name('cheques.issued');
+    Route::get('/taxes/rates', fn() => 'Tax Rates Page')->name('taxes.rates');
+    Route::get('/taxes/reports', fn() => 'Tax Reports Page')->name('taxes.reports');
+    Route::get('/reports/sales', fn() => 'Sales Report Page')->name('reports.sales');
+    Route::get('/reports/purchases', fn() => 'Purchase Report Page')->name('reports.purchases');
+    Route::get('/reports/stock', fn() => 'Stock Report Page')->name('reports.stock');
 });

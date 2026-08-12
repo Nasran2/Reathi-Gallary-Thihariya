@@ -11,20 +11,60 @@ use Illuminate\Support\Str;
 
 class SettingsController extends Controller
 {
-    public function index()
+    public function show($section = 'general')
     {
-        return view('settings.index', ['settings' => BusinessSetting::pluck('value', 'key'), 'units' => Unit::orderBy('name')->get(), 'categories' => Category::orderBy('name')->get(), 'methods' => PaymentMethod::orderBy('sort_order')->get()]);
+        $this->authorize('manage-settings');
+        $config = config("settings.{$section}");
+        
+        if (!$config) {
+            abort(404);
+        }
+
+        if ($config === 'custom') {
+            return view("settings.{$section}", [
+                'settings' => BusinessSetting::pluck('value', 'key'),
+                'units' => Unit::orderBy('name')->get(),
+                'categories' => Category::orderBy('name')->get(),
+                'methods' => PaymentMethod::orderBy('sort_order')->get()
+            ]);
+        }
+
+        return view('settings.dynamic', [
+            'section' => $section,
+            'config' => $config,
+            'settings' => BusinessSetting::pluck('value', 'key'),
+        ]);
     }
 
     public function update(Request $r)
     {
         $this->authorize('manage-settings');
-        $data = $r->validate(['business_name' => 'required|max:150', 'currency_symbol' => 'required|max:10', 'money_decimals' => 'required|integer|min:0|max:4', 'quantity_decimals' => 'required|integer|min:0|max:6', 'allow_negative_stock' => 'boolean', 'block_main_below_cost' => 'boolean', 'remnant_partial_sale' => 'boolean', 'sms_enabled' => 'boolean', 'sms_gateway_url' => 'nullable|url', 'sms_textit_id' => 'nullable|max:150', 'sms_password' => 'nullable|max:255', 'sms_timeout' => 'nullable|integer|min:1|max:60', 'sms_template' => 'nullable|max:1000', 'invoice_link_expiry' => 'required|in:never,30_days,90_days,1_year', 'primary_colour' => 'nullable|max:20']);
-        foreach ($data as $key => $value) {
-            BusinessSetting::write($key, $value, $key === 'sms_password');
+        
+        $data = $r->except(['_token', '_method']);
+        
+        if ($r->hasFile('business_logo')) {
+            $path = $r->file('business_logo')->store('public/logos');
+            $data['business_logo'] = str_replace('public/', 'storage/', $path);
         }
 
-return back()->with('success', 'Settings saved.');
+        foreach ($data as $key => $value) {
+            if (is_array($value)) continue; // skip arrays if any
+            BusinessSetting::write($key, $value, str_contains($key, 'password'));
+        }
+
+        // Handle un-checked checkboxes (they are missing from the request)
+        $section = $r->input('_section');
+        if ($section && is_array(config("settings.{$section}.sections"))) {
+            foreach (config("settings.{$section}.sections") as $sec) {
+                foreach ($sec['fields'] as $field) {
+                    if ($field['type'] === 'checkbox' && !$r->has($field['name'])) {
+                        BusinessSetting::write($field['name'], '0');
+                    }
+                }
+            }
+        }
+
+        return back()->with('success', 'Settings saved.');
     }
 
     public function unit(Request $r)

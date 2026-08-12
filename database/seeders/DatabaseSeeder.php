@@ -39,7 +39,7 @@ class DatabaseSeeder extends Seeder
         foreach (['Rent', 'Electricity', 'Salary', 'Transport', 'Delivery', 'Loading', 'Meals', 'Internet', 'Maintenance', 'Other'] as $name) {
             ExpenseCategory::firstOrCreate(['name' => $name], ['active' => true]);
         }
-        foreach (['business_name' => 'Reathi Gallery', 'currency_symbol' => 'Rs.', 'money_decimals' => '2', 'quantity_decimals' => '3', 'allow_negative_stock' => 'false', 'block_main_below_cost' => 'false', 'remnant_partial_sale' => 'true', 'invoice_link_expiry' => 'never', 'sms_enabled' => 'false', 'sms_timeout' => '10', 'primary_colour' => '#177d75'] as $key => $value) {
+        foreach (['business_name' => 'Reathi Gallery', 'currency_symbol' => 'Rs.', 'money_decimals' => '2', 'quantity_decimals' => '3', 'allow_negative_stock' => 'false', 'block_main_below_cost' => 'false', 'remnant_partial_sale' => 'true', 'invoice_link_expiry' => 'never', 'sms_enabled' => 'false', 'sms_timeout' => '10', 'primary_colour' => '#177d75', 'card_fee_percentage' => '0'] as $key => $value) {
             BusinessSetting::firstOrCreate(['key' => $key], ['value' => $value]);
         }
 

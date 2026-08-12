@@ -40,7 +40,7 @@ class SaleService
                 'idempotency_key' => $data['idempotency_key'], 'sale_type' => $type, 'store_id' => $data['store_id'],
                 'customer_id' => $data['customer_id'] ?? null, 'user_id' => $userId, 'status' => 'completed',
                 'subtotal' => 0, 'discount_total' => 0, 'tax_total' => 0, 'grand_total' => 0, 'paid_total' => 0, 'due_total' => 0, 'cost_total' => 0, 'profit_total' => 0,
-                'notes' => $data['notes'] ?? null, 'sold_at' => now(),
+                'notes' => trim(($data['notes'] ?? '') . "\n" . ($data['staff_note'] ?? '')), 'sold_at' => now(),
             ]);
             $subtotal = BigDecimal::zero();
             $discount = BigDecimal::zero();
@@ -109,7 +109,15 @@ class SaleService
                 if ($method->requires_reference && empty($payment['reference'])) {
                     throw ValidationException::withMessages(['payments' => 'A payment reference is required.']);
                 }
-                $sale->payments()->create(['payment_method_id' => $method->id, 'amount' => $amount, 'reference' => $payment['reference'] ?? null]);
+                $feeAmount = BigDecimal::zero();
+                if ($method->code === 'card') {
+                    $feePercent = Decimal::of(BusinessSetting::read('card_fee_percentage', 0));
+                    if ($feePercent->isGreaterThan(0)) {
+                        $feeAmount = $amount->multipliedBy($feePercent)->dividedBy(Decimal::of(100), 4, RoundingMode::HalfUp);
+                        $profit = $profit->minus($feeAmount);
+                    }
+                }
+                $sale->payments()->create(['payment_method_id' => $method->id, 'amount' => $amount, 'bank_fee' => $feeAmount, 'reference' => $payment['reference'] ?? null]);
                 if ($method->code !== 'credit_due') {
                     $paid = $paid->plus($amount);
                 }
