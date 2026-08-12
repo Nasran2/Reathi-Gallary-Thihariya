@@ -57,6 +57,10 @@ Route::middleware('auth')->group(function () {
     Route::put('/settings/categories/{category}', [SettingsController::class, 'updateCategory'])->name('settings.categories.update');
     Route::delete('/settings/categories/{category}', [SettingsController::class, 'destroyCategory'])->name('settings.categories.destroy');
     
+    Route::post('/settings/brands', [SettingsController::class, 'brand'])->name('settings.brands.store');
+    Route::put('/settings/brands/{brand}', [SettingsController::class, 'updateBrand'])->name('settings.brands.update');
+    Route::delete('/settings/brands/{brand}', [SettingsController::class, 'destroyBrand'])->name('settings.brands.destroy');
+    
     Route::post('/settings/payment-methods',[SettingsController::class, 'paymentMethod'])->name('settings.payment-methods.store');
     Route::put('/settings/payment-methods/{method}', [SettingsController::class, 'updatePaymentMethod'])->name('settings.payment-methods.update');
     Route::delete('/settings/payment-methods/{method}', [SettingsController::class, 'destroyPaymentMethod'])->name('settings.payment-methods.destroy');

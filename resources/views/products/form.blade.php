@@ -16,7 +16,7 @@
                 @endforeach
             </select>
         </div>
-        <div><label>Brand</label><input class="w-full" name="brand" value="{{ old('brand',$product->brand) }}"></div>
+        <div><label>Brand</label><select class="w-full" name="brand_id"><option value="">-- No Brand --</option>@foreach($brands as $b)<option value="{{ $b->id }}" {{ old('brand_id', $product->brand_id) == $b->id ? 'selected' : '' }}>{{ $b->name }}</option>@endforeach</select></div>
         <div><label>Fabric type</label><input class="w-full" name="fabric_type" value="{{ old('fabric_type',$product->fabric_type) }}" placeholder="Cotton, linen…"></div>
         <div><label>Material</label><input class="w-full" name="material" value="{{ old('material',$product->material) }}"></div>
         <div><label>Colour</label><input class="w-full" name="colour" value="{{ old('colour',$product->colour) }}"></div>

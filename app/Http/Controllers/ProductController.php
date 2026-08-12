@@ -20,7 +20,7 @@ class ProductController extends Controller
 
     public function create()
     {
-        return view('products.form', ['product' => new Product, 'categories' => Category::where('active', 1)->get(), 'units' => Unit::where('active', 1)->get(), 'suppliers' => Supplier::where('active', 1)->get()]);
+        return view('products.form', ['product' => new Product, 'categories' => Category::where('active', 1)->get(), 'brands' => \App\Models\Brand::where('active', 1)->get(), 'units' => Unit::where('active', 1)->get(), 'suppliers' => Supplier::where('active', 1)->get()]);
     }
 
     public function store(Request $r)
@@ -41,7 +41,7 @@ class ProductController extends Controller
 
     public function edit(Product $product)
     {
-        return view('products.form', compact('product') + ['categories' => Category::where('active', 1)->get(), 'units' => Unit::where('active', 1)->get(), 'suppliers' => Supplier::where('active', 1)->get()]);
+        return view('products.form', compact('product') + ['categories' => Category::where('active', 1)->get(), 'brands' => \App\Models\Brand::where('active', 1)->get(), 'units' => Unit::where('active', 1)->get(), 'suppliers' => Supplier::where('active', 1)->get()]);
     }
 
     public function update(Request $r, Product $product)
@@ -90,12 +90,12 @@ class ProductController extends Controller
 
     public function brands()
     {
-        $brands = Product::whereNotNull('brand')->where('brand', '!=', '')->distinct()->pluck('brand')->sort();
+        $brands = \App\Models\Brand::orderBy('name')->get();
         return view('products.brands', compact('brands'));
     }
 
     private function validated(Request $r, ?Product $p = null)
     {
-        return $r->validate(['name' => 'required|max:150', 'sku' => 'required|max:80|unique:products,sku,'.($p?->id ?? 'NULL'), 'barcode' => 'nullable|max:80|unique:products,barcode,'.($p?->id ?? 'NULL'), 'category_id' => 'nullable|exists:categories,id', 'base_unit_id' => 'required|exists:units,id', 'default_purchase_unit_id' => 'nullable|exists:units,id', 'default_selling_unit_id' => 'nullable|exists:units,id', 'default_supplier_id' => 'nullable|exists:suppliers,id', 'brand' => 'nullable|max:100', 'fabric_type' => 'nullable|max:100', 'material' => 'nullable|max:100', 'colour' => 'nullable|max:100', 'pattern' => 'nullable|max:100', 'width' => 'nullable|max:100', 'description' => 'nullable', 'minimum_stock' => 'required|numeric|min:0', 'reorder_level' => 'required|numeric|min:0', 'tax_rate' => 'nullable|numeric|min:0', 'track_rolls' => 'boolean', 'active' => 'boolean', 'units' => 'required|array|min:1', 'units.*.unit_id' => 'required|distinct|exists:units,id', 'units.*.conversion_rate' => 'required|numeric|gt:0', 'units.*.main_selling_price' => 'required|numeric|min:0', 'units.*.remnant_selling_price' => 'required|numeric|min:0', 'units.*.can_purchase' => 'boolean', 'units.*.can_sell' => 'boolean']);
+        return $r->validate(['name' => 'required|max:150', 'sku' => 'required|max:80|unique:products,sku,'.($p?->id ?? 'NULL'), 'barcode' => 'nullable|max:80|unique:products,barcode,'.($p?->id ?? 'NULL'), 'category_id' => 'nullable|exists:categories,id', 'base_unit_id' => 'required|exists:units,id', 'default_purchase_unit_id' => 'nullable|exists:units,id', 'default_selling_unit_id' => 'nullable|exists:units,id', 'default_supplier_id' => 'nullable|exists:suppliers,id', 'brand_id' => 'nullable|exists:brands,id', 'fabric_type' => 'nullable|max:100', 'material' => 'nullable|max:100', 'colour' => 'nullable|max:100', 'pattern' => 'nullable|max:100', 'width' => 'nullable|max:100', 'description' => 'nullable', 'minimum_stock' => 'required|numeric|min:0', 'reorder_level' => 'required|numeric|min:0', 'tax_rate' => 'nullable|numeric|min:0', 'track_rolls' => 'boolean', 'active' => 'boolean', 'units' => 'required|array|min:1', 'units.*.unit_id' => 'required|distinct|exists:units,id', 'units.*.conversion_rate' => 'required|numeric|gt:0', 'units.*.main_selling_price' => 'required|numeric|min:0', 'units.*.remnant_selling_price' => 'required|numeric|min:0', 'units.*.can_purchase' => 'boolean', 'units.*.can_sell' => 'boolean']);
     }
 }

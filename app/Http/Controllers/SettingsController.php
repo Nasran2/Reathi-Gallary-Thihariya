@@ -140,4 +140,32 @@ class SettingsController extends Controller
         $method->delete();
         return back()->with('success', 'Payment method deleted.');
     }
+
+    public function brand(Request $r)
+    {
+        $this->authorize('manage-settings');
+        $d = $r->validate(['name' => 'required|max:100|unique:brands,name', 'description' => 'nullable']);
+        $brand = \App\Models\Brand::create($d + ['active' => true]);
+
+        if ($r->wantsJson()) {
+            return response()->json($brand);
+        }
+
+        return back()->with('success', 'Brand added.');
+    }
+
+    public function updateBrand(Request $r, \App\Models\Brand $brand)
+    {
+        $this->authorize('manage-settings');
+        $d = $r->validate(['name' => 'required|max:100|unique:brands,name,'.$brand->id, 'description' => 'nullable']);
+        $brand->update($d);
+        return back()->with('success', 'Brand updated.');
+    }
+
+    public function destroyBrand(\App\Models\Brand $brand)
+    {
+        $this->authorize('manage-settings');
+        $brand->delete();
+        return back()->with('success', 'Brand deleted.');
+    }
 }
