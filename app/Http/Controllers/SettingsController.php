@@ -120,7 +120,7 @@ class SettingsController extends Controller
     public function paymentMethod(Request $r)
     {
         $this->authorize('manage-settings');
-        $d = $r->validate(['name' => 'required|max:80|unique:payment_methods,name', 'code' => 'required|max:50|unique:payment_methods,code', 'requires_reference' => 'boolean']);
+        $d = $r->validate(['name' => 'required|max:80|unique:payment_methods,name', 'code' => 'required|max:50|unique:payment_methods,code', 'requires_reference' => 'boolean', 'bank_charge_percentage' => 'nullable|numeric|min:0|max:100']);
         PaymentMethod::create($d + ['active' => true, 'sort_order' => PaymentMethod::max('sort_order') + 1]);
 
         return back()->with('success', 'Payment method added.');
@@ -129,7 +129,7 @@ class SettingsController extends Controller
     public function updatePaymentMethod(Request $r, PaymentMethod $method)
     {
         $this->authorize('manage-settings');
-        $d = $r->validate(['name' => 'required|max:80|unique:payment_methods,name,'.$method->id, 'code' => 'required|max:50|unique:payment_methods,code,'.$method->id, 'requires_reference' => 'boolean', 'active' => 'boolean']);
+        $d = $r->validate(['name' => 'required|max:80|unique:payment_methods,name,'.$method->id, 'code' => 'required|max:50|unique:payment_methods,code,'.$method->id, 'requires_reference' => 'boolean', 'active' => 'boolean', 'bank_charge_percentage' => 'nullable|numeric|min:0|max:100']);
         $method->update($d);
         return back()->with('success', 'Payment method updated.');
     }

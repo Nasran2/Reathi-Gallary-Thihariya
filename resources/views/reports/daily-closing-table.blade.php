@@ -3,7 +3,7 @@
     $totalPaid = $sales->sum('paid_total');
     $totalDue = $sales->sum('due_total');
     
-    $totalPurchases = $purchases->sum('total_amount');
+    $totalPurchases = $purchases->sum('supplier_total');
     $totalExpenses = $expenses->sum('amount');
     
     $netCash = $totalPaid - ($totalPurchases + $totalExpenses);
@@ -53,7 +53,7 @@
             @forelse($purchases as $purchase)
                 <tr class="border-b border-slate-100">
                     <td class="py-2">{{ $purchase->reference_no ?? 'Ref' }}</td>
-                    <td class="py-2 text-right text-rose-600">Rs. {{ number_format($purchase->total_amount, 2) }}</td>
+                    <td class="py-2 text-right text-rose-600">Rs. {{ number_format($purchase->supplier_total, 2) }}</td>
                 </tr>
             @empty
                 <tr><td colspan="2" class="py-4 text-center text-slate-500">No purchases today</td></tr>

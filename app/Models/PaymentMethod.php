@@ -10,6 +10,6 @@ class PaymentMethod extends Model
 
     protected function casts(): array
     {
-        return ['requires_reference' => 'boolean', 'active' => 'boolean'];
+        return ['requires_reference' => 'boolean', 'active' => 'boolean', 'bank_charge_percentage' => 'decimal:2'];
     }
 }

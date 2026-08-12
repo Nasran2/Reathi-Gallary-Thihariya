@@ -10,10 +10,10 @@
     <tbody>
         @forelse($purchases as $purchase)
             <tr class="border-b border-slate-100 hover:bg-slate-50">
-                <td class="px-6 py-4 whitespace-nowrap">{{ $purchase->purchased_at->format('Y-m-d') }}</td>
+                <td class="px-6 py-4 whitespace-nowrap">{{ $purchase->purchase_date?->format('Y-m-d') }}</td>
                 <td class="px-6 py-4 font-bold text-slate-800">{{ $purchase->reference_no ?? 'N/A' }}</td>
                 <td class="px-6 py-4">{{ $purchase->supplier?->name ?? 'N/A' }}</td>
-                <td class="px-6 py-4 text-right font-semibold text-slate-800">Rs. {{ number_format($purchase->total_amount, 2) }}</td>
+                <td class="px-6 py-4 text-right font-semibold text-slate-800">Rs. {{ number_format($purchase->supplier_total, 2) }}</td>
             </tr>
         @empty
             <tr>
@@ -28,7 +28,7 @@
     <tfoot class="bg-slate-50 font-bold text-slate-800">
         <tr>
             <td colspan="3" class="px-6 py-4 text-right uppercase text-xs">Total</td>
-            <td class="px-6 py-4 text-right">Rs. {{ number_format($purchases->sum('total_amount'), 2) }}</td>
+            <td class="px-6 py-4 text-right">Rs. {{ number_format($purchases->sum('supplier_total'), 2) }}</td>
         </tr>
     </tfoot>
     @endif

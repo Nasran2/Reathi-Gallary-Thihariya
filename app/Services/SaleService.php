@@ -110,13 +110,28 @@ class SaleService
                     throw ValidationException::withMessages(['payments' => 'A payment reference is required.']);
                 }
                 $feeAmount = BigDecimal::zero();
-                if ($method->code === 'card') {
-                    $feePercent = Decimal::of(BusinessSetting::read('card_fee_percentage', 0));
-                    if ($feePercent->isGreaterThan(0)) {
-                        $feeAmount = $amount->multipliedBy($feePercent)->dividedBy(Decimal::of(100), 4, RoundingMode::HalfUp);
-                        $profit = $profit->minus($feeAmount);
-                    }
+                $feePercent = Decimal::of($method->bank_charge_percentage ?? 0);
+                if ($feePercent->isGreaterThan(0)) {
+                    $feeAmount = $amount->multipliedBy($feePercent)->dividedBy(Decimal::of(100), 4, RoundingMode::HalfUp);
+                    $profit = $profit->minus($feeAmount);
+                    
+                    // Save the fee as an expense
+                    $expenseCategory = \App\Models\Category::firstOrCreate(
+                        ['name' => 'Bank Charges', 'type' => 'expense'],
+                        ['slug' => 'bank-charges', 'active' => true]
+                    );
+                    
+                    \App\Models\Expense::create([
+                        'uuid' => Str::uuid(),
+                        'expense_date' => now(),
+                        'category_id' => $expenseCategory->id,
+                        'amount' => $feeAmount,
+                        'reference_no' => $sale->invoice_no,
+                        'note' => $method->name . ' Fee for ' . $sale->invoice_no,
+                        'created_by' => $userId,
+                    ]);
                 }
+                
                 $sale->payments()->create(['payment_method_id' => $method->id, 'amount' => $amount, 'bank_fee' => $feeAmount, 'reference' => $payment['reference'] ?? null]);
                 if ($method->code !== 'credit_due') {
                     $paid = $paid->plus($amount);

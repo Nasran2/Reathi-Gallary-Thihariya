@@ -57,13 +57,13 @@ class ReportController extends Controller
         $this->authorize('view-reports');
         [$from, $to] = $this->dates($r);
         
-        $query = Purchase::with('supplier')->whereBetween('purchased_at', [$from->startOfDay(), $to->endOfDay()]);
+        $query = Purchase::with('supplier')->whereBetween('purchase_date', [$from->startOfDay(), $to->endOfDay()]);
         
         if ($r->filled('supplier_id')) {
             $query->where('supplier_id', $r->supplier_id);
         }
         
-        $purchases = $query->orderBy('purchased_at', 'desc')->get();
+        $purchases = $query->orderBy('purchase_date', 'desc')->get();
         $suppliers = Supplier::orderBy('name')->get();
 
         return $this->render($r, 'reports.purchases', compact('purchases', 'suppliers', 'from', 'to'), 'Purchase Report', 'landscape');
@@ -81,7 +81,7 @@ class ReportController extends Controller
         }
         
         $expenses = $query->orderBy('expense_date', 'desc')->get();
-        $categories = \App\Models\Category::where('type', 'expense')->orderBy('name')->get();
+        $categories = \App\Models\Category::orderBy('name')->get();
 
         return $this->render($r, 'reports.expenses', compact('expenses', 'categories', 'from', 'to'), 'Expense Report');
     }
@@ -131,7 +131,7 @@ class ReportController extends Controller
         $to = clone $date;
 
         $sales = Sale::whereBetween('sold_at', [$date->startOfDay(), $date->endOfDay()])->get();
-        $purchases = Purchase::whereBetween('purchased_at', [$date->startOfDay(), $date->endOfDay()])->get();
+        $purchases = Purchase::whereBetween('purchase_date', [$date->startOfDay(), $date->endOfDay()])->get();
         $expenses = Expense::whereDate('expense_date', $date->toDateString())->get();
 
         $data = compact('sales', 'purchases', 'expenses', 'date', 'from', 'to');
@@ -186,7 +186,7 @@ class ReportController extends Controller
             ];
         });
 
-        $categories = \App\Models\Category::where('type', 'product')->orderBy('name')->get();
+        $categories = \App\Models\Category::orderBy('name')->get();
         $from = now(); $to = now();
 
         return $this->render($r, 'reports.valuation', compact('rows', 'type', 'categories', 'from', 'to'), 'Stock Valuation Report');
@@ -198,18 +198,19 @@ class ReportController extends Controller
         $days = (int) $r->get('days', 90);
         
         $query = Product::with(['category', 'baseUnit', 'balances', 'productUnits'])
-            ->leftJoin('sale_items', 'sale_items.product_id', '=', 'products.id')
-            ->leftJoin('sales', fn ($j) => $j->on('sales.id', '=', 'sale_items.sale_id')->where('sales.status', 'completed'))
-            ->select('products.*', DB::raw('MAX(sales.sold_at) last_sale_at'))
-            ->groupBy('products.id')
-            ->havingRaw('MAX(sales.sold_at) IS NULL OR MAX(sales.sold_at) < ?', [now()->subDays($days)]);
+            ->addSelect(['last_sale_at' => \App\Models\SaleItem::selectRaw('MAX(sales.sold_at)')
+                ->join('sales', 'sales.id', '=', 'sale_items.sale_id')
+                ->whereColumn('sale_items.product_id', 'products.id')
+                ->where('sales.status', 'completed')
+            ])
+            ->havingRaw('last_sale_at IS NULL OR last_sale_at < ?', [now()->subDays($days)]);
             
         if ($r->filled('category_id')) {
             $query->where('products.category_id', $r->category_id);
         }
         
         $products = $query->get();
-        $categories = \App\Models\Category::where('type', 'product')->orderBy('name')->get();
+        $categories = \App\Models\Category::orderBy('name')->get();
         $from = now(); $to = now();
 
         return $this->render($r, 'reports.dead-stock', compact('products', 'days', 'categories', 'from', 'to'), 'Dead Stock Report');
