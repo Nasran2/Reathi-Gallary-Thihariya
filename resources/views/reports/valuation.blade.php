@@ -1,1 +1,47 @@
-@extends('layouts.app') @section('title','Stock Valuation') @section('content')<h1 class="font-serif text-3xl text-ink">Stock valuation</h1><p class="mb-5 text-sm text-slate-500">Cost value and estimated selling value are deliberately separate.</p>@include('reports._nav')<form class="mb-4 flex gap-2"><select name="type"><option value="combined" @selected($type==='combined')>Combined</option><option value="main" @selected($type==='main')>Main only</option><option value="remnant" @selected($type==='remnant')>Remnant only</option></select><button class="btn-primary">Apply</button></form><div class="card overflow-x-auto"><table><thead><tr><th>Product</th><th>Main qty</th><th>Remnant qty</th><th>Average cost</th><th>Cost stock value</th><th>Estimated selling value</th><th>Potential margin</th></tr></thead><tbody>@foreach($rows as $r)<tr><td><div class="font-semibold">{{ $r['p']->name }}</div><div class="text-xs text-slate-400">{{ $r['p']->sku }}</div></td><td>{{ number_format($r['main'],4) }}</td><td>{{ number_format($r['remnant'],4) }}</td><td>Rs. {{ number_format($r['p']->average_cost,4) }}</td><td class="font-semibold">Rs. {{ number_format($r['costValue'],2) }}</td><td>Rs. {{ number_format($r['sellingValue'],2) }}</td><td class="{{ $r['sellingValue']-$r['costValue']<0?'text-red-600':'text-emerald-600' }}">Rs. {{ number_format($r['sellingValue']-$r['costValue'],2) }}</td></tr>@endforeach</tbody></table></div>@endsection
+@extends('layouts.app') 
+
+@section('title', 'Stock Valuation Report') 
+
+@section('content')
+<div class="flex justify-between items-center mb-5">
+    <div>
+        <h1 class="font-serif text-3xl text-ink">Stock Report</h1>
+        <p class="text-sm text-slate-500">View current inventory valuation based on average cost and selling price</p>
+    </div>
+    <div class="flex gap-2">
+        <button type="button" onclick="document.getElementById('hidden-export').value='pdf'; document.getElementById('filter-form').submit(); document.getElementById('hidden-export').value='';" class="btn-white">
+            <i class="ti ti-printer"></i> Print / PDF
+        </button>
+    </div>
+</div>
+
+@component('reports.filters')
+    <div>
+        <label class="block text-sm font-semibold text-slate-700 mb-1">Inventory Type</label>
+        <select name="type" class="rounded-xl border-slate-200 py-2.5 px-3 w-48 bg-white" onchange="document.getElementById('filter-form').submit()">
+            <option value="combined" {{ request('type') == 'combined' ? 'selected' : '' }}>Combined</option>
+            <option value="main" {{ request('type') == 'main' ? 'selected' : '' }}>Main Only</option>
+            <option value="remnant" {{ request('type') == 'remnant' ? 'selected' : '' }}>Remnant Only</option>
+        </select>
+    </div>
+    <div>
+        <label class="block text-sm font-semibold text-slate-700 mb-1">Category</label>
+        <select name="category_id" class="rounded-xl border-slate-200 py-2.5 px-3 w-48 bg-white" onchange="document.getElementById('filter-form').submit()">
+            <option value="">All Categories</option>
+            @foreach($categories as $category)
+                <option value="{{ $category->id }}" {{ request('category_id') == $category->id ? 'selected' : '' }}>{{ $category->name }}</option>
+            @endforeach
+        </select>
+    </div>
+    <input type="hidden" name="export" id="hidden-export" value="">
+    <div class="w-full text-xs text-slate-500 mt-2 italic">
+        * Note: Stock valuation represents real-time data. Date filters do not affect stock totals.
+    </div>
+@endcomponent
+
+<div class="card overflow-hidden">
+    <div class="overflow-x-auto">
+        @include('reports.valuation-table')
+    </div>
+</div>
+@endsection

@@ -86,7 +86,11 @@ Route::middleware('auth')->group(function () {
     Route::get('/cheques/issued', fn() => 'Issued Cheques Page')->name('cheques.issued');
     Route::get('/taxes/rates', fn() => 'Tax Rates Page')->name('taxes.rates');
     Route::get('/taxes/reports', fn() => 'Tax Reports Page')->name('taxes.reports');
-    Route::get('/reports/sales', fn() => 'Sales Report Page')->name('reports.sales');
-    Route::get('/reports/purchases', fn() => 'Purchase Report Page')->name('reports.purchases');
-    Route::get('/reports/stock', fn() => 'Stock Report Page')->name('reports.stock');
+    Route::get('/reports/sales', [ReportController::class, 'sales'])->name('reports.sales');
+    Route::get('/reports/purchases', [ReportController::class, 'purchases'])->name('reports.purchases');
+    Route::get('/reports/stock', [ReportController::class, 'valuation'])->name('reports.stock'); // Mapping stock to valuation
+    Route::get('/reports/expenses', [ReportController::class, 'expenses'])->name('reports.expenses');
+    Route::get('/reports/due-bills', [ReportController::class, 'dueBills'])->name('reports.due-bills');
+    Route::get('/reports/customer-due', [ReportController::class, 'customerDue'])->name('reports.customer-due');
+    Route::get('/reports/daily-closing', [ReportController::class, 'dailyClosing'])->name('reports.daily-closing');
 });

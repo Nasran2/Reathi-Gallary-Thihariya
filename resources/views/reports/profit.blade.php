@@ -1,1 +1,23 @@
-@extends('layouts.app') @section('title','Profit & Loss') @section('content')<h1 class="font-serif text-3xl text-ink">Reports</h1><p class="mb-5 text-sm text-slate-500">Database-backed financial and inventory reporting.</p>@include('reports._nav')<form class="card mb-5 flex flex-wrap items-end gap-3 p-4"><div><label>From</label><input type="date" name="from" value="{{ $from->toDateString() }}"></div><div><label>To</label><input type="date" name="to" value="{{ $to->toDateString() }}"></div><button class="btn-primary">Apply period</button></form><div class="grid gap-5 lg:grid-cols-3"><div class="card p-6"><span class="badge bg-teal/10 text-teal">MAIN INVENTORY</span><h2 class="mt-3 font-serif text-2xl">Main sales profit</h2><div class="mt-5 space-y-3"><div class="flex justify-between"><span>Net sales</span><strong>Rs. {{ number_format($main->sales,2) }}</strong></div><div class="flex justify-between"><span>COGS</span><strong>Rs. {{ number_format($main->cogs,2) }}</strong></div><div class="flex justify-between border-t pt-3"><span>Gross profit</span><strong class="{{ $main->profit<0?'text-red-600':'text-emerald-600' }}">Rs. {{ number_format($main->profit,2) }}</strong></div></div></div><div class="card p-6"><span class="badge bg-amber-100 text-amber-800">REMNANT</span><h2 class="mt-3 font-serif text-2xl">Remnant profit / loss</h2><div class="mt-5 space-y-3"><div class="flex justify-between"><span>Net sales</span><strong>Rs. {{ number_format($remnant->sales,2) }}</strong></div><div class="flex justify-between"><span>COGS</span><strong>Rs. {{ number_format($remnant->cogs,2) }}</strong></div><div class="flex justify-between border-t pt-3"><span>Gross profit / loss</span><strong class="{{ $remnant->profit<0?'text-red-600':'text-emerald-600' }}">Rs. {{ number_format($remnant->profit,2) }}</strong></div></div></div><div class="card bg-ink p-6 text-white"><span class="text-xs font-semibold uppercase tracking-widest text-teal-200">Combined business</span><h2 class="mt-3 font-serif text-2xl">Net result</h2><div class="mt-5 space-y-3"><div class="flex justify-between text-slate-300"><span>Gross profit</span><strong>Rs. {{ number_format($main->profit+$remnant->profit,2) }}</strong></div><div class="flex justify-between text-slate-300"><span>Expenses</span><strong>− Rs. {{ number_format($expenses,2) }}</strong></div><div class="flex justify-between border-t border-white/10 pt-3 text-xl"><span>Net profit / loss</span><strong class="{{ $main->profit+$remnant->profit-$expenses<0?'text-red-300':'text-emerald-300' }}">Rs. {{ number_format($main->profit+$remnant->profit-$expenses,2) }}</strong></div></div></div></div>@endsection
+@extends('layouts.app') 
+
+@section('title', 'Profit & Loss Report') 
+
+@section('content')
+<div class="flex justify-between items-center mb-5">
+    <div>
+        <h1 class="font-serif text-3xl text-ink">Profit & Loss Report</h1>
+        <p class="text-sm text-slate-500">View overall business performance</p>
+    </div>
+    <div class="flex gap-2">
+        <button type="button" onclick="document.getElementById('hidden-export').value='pdf'; document.getElementById('filter-form').submit(); document.getElementById('hidden-export').value='';" class="btn-white">
+            <i class="ti ti-printer"></i> Print / PDF
+        </button>
+    </div>
+</div>
+
+@component('reports.filters')
+    <input type="hidden" name="export" id="hidden-export" value="">
+@endcomponent
+
+@include('reports.profit-table')
+@endsection
