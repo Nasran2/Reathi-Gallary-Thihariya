@@ -179,11 +179,21 @@ class ReportController extends Controller
             $qty = $type === 'main' ? $main : ($type === 'remnant' ? $remnant : $main + $remnant);
             $mainPrice = $p->productUnits->first()?->main_selling_price ?? 0;
             $remnantPrice = $p->productUnits->first()?->remnant_selling_price ?? 0;
+            
+            if ($type === 'main') {
+                $sellingValue = $main * $mainPrice;
+            } elseif ($type === 'remnant') {
+                $sellingValue = $remnant * $remnantPrice;
+            } else {
+                $sellingValue = ($main * $mainPrice) + ($remnant * $remnantPrice);
+            }
 
             return compact('p', 'main', 'remnant', 'qty', 'mainPrice', 'remnantPrice') + [
                 'costValue' => $qty * $p->average_cost, 
-                'sellingValue' => $main * $mainPrice + $remnant * $remnantPrice
+                'sellingValue' => $sellingValue
             ];
+        })->filter(function($row) {
+            return $row['qty'] > 0;
         });
 
         $categories = \App\Models\Category::orderBy('name')->get();

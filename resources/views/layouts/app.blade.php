@@ -26,11 +26,7 @@ $nav = [
     ], 'tabler-cash'],
     ['Customers', 'customers.index', 'tabler-user-check'],
     ['Suppliers', 'suppliers.index', 'tabler-truck'],
-    ['Distribution', [
-        ['Vehicles', 'distribution.vehicles'],
-        ['Drivers', 'distribution.drivers'],
-        ['Delivery Routes', 'distribution.routes'],
-    ], 'tabler-map-pin'],
+
     ['Store Stock', [
         ['Main Inventory', 'inventory.index'],
         ['Remnants', 'remnants.index'],
@@ -40,11 +36,7 @@ $nav = [
         ['Expenses List', 'expenses.index'],
         ['Expense Categories', 'expenses.categories'],
     ], 'tabler-currency-dollar'],
-    ['Accounting', [
-        ['Accounts', 'accounting.accounts'],
-        ['Deposits', 'accounting.deposits'],
-        ['Transfers', 'accounting.transfers'],
-    ], 'tabler-calculator'],
+
     ['Cheque Management', [
         ['Received Cheques', 'cheques.received'],
         ['Issued Cheques', 'cheques.issued'],
