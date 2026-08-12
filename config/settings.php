@@ -29,6 +29,7 @@ return [
                     ['name' => 'number_format', 'label' => 'Number Format', 'type' => 'select', 'options' => [',' => '1,234.56', '.' => '1.234,56'], 'default' => ','],
                     ['name' => 'money_decimals', 'label' => 'Decimal Places', 'type' => 'number', 'min' => 0, 'max' => 4, 'default' => 2],
                     ['name' => 'quantity_decimals', 'label' => 'Quantity display decimals', 'type' => 'number', 'min' => 0, 'max' => 6, 'default' => 3],
+                    ['name' => 'card_fee_percentage', 'label' => 'Bank Card Fee (%)', 'type' => 'number', 'step' => '0.01', 'min' => 0, 'default' => 0],
                 ],
             ],
         ],

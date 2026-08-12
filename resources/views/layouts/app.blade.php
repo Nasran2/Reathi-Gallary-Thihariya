@@ -49,10 +49,6 @@ $nav = [
         ['Received Cheques', 'cheques.received'],
         ['Issued Cheques', 'cheques.issued'],
     ], 'tabler-receipt'],
-    ['Tax Management', [
-        ['Tax Rates', 'taxes.rates'],
-        ['Tax Reports', 'taxes.reports'],
-    ], 'tabler-receipt-tax'],
     ['Reports', [
         ['Profit/Loss', 'reports.profit'],
         ['Sales Report', 'reports.sales'],
@@ -62,7 +58,7 @@ $nav = [
     ['Settings', [
         ['General Settings', 'settings.show', ['section' => 'general']],
         ['Business Profile', 'settings.show', ['section' => 'business-profile']],
-        ['Branch / Store Settings', 'settings.show', ['section' => 'branches']],
+        // ['Branch / Store Settings', 'settings.show', ['section' => 'branches']],
         ['Invoice Settings', 'settings.show', ['section' => 'invoice']],
         ['POS Settings', 'settings.show', ['section' => 'pos']],
         ['Product Settings', 'settings.show', ['section' => 'products']],
@@ -74,7 +70,7 @@ $nav = [
         ['Supplier Settings', 'settings.show', ['section' => 'suppliers']],
         ['Account Settings', 'settings.show', ['section' => 'accounts']],
         ['Expense Settings', 'settings.show', ['section' => 'expenses']],
-        ['Tax & Discount Settings', 'settings.show', ['section' => 'taxes']],
+        // ['Tax & Discount Settings', 'settings.show', ['section' => 'taxes']],
         ['Payment Method Settings', 'settings.show', ['section' => 'payments']],
         ['SMS & WhatsApp Settings', 'settings.show', ['section' => 'sms']],
         ['Report Settings', 'settings.show', ['section' => 'reports']],

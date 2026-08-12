@@ -18,7 +18,8 @@
     </div>
 </div>
 
-<div class="grid gap-6 lg:grid-cols-2">
+<div class="grid gap-6 lg:grid-cols-2" x-data="{ editUnit: null, deleteUnit: null, editCategory: null, deleteCategory: null }">
+    <!-- Units Section -->
     <section class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
         <div class="bg-slate-50/50 px-6 py-4 border-b border-slate-100 flex items-center gap-3">
             <div class="grid h-10 w-10 place-items-center rounded-lg bg-blue-50 text-blue-500">
@@ -42,23 +43,34 @@
                     <input class="w-full rounded-lg border-slate-200 py-2" name="symbol" placeholder="yd" required>
                 </div>
                 <label class="flex items-center gap-2 normal-case py-2 cursor-pointer">
+                    <input type="hidden" name="allows_decimal" value="0">
                     <input type="checkbox" name="allows_decimal" value="1" checked class="rounded text-blue-600 focus:ring-blue-500"> 
                     <span class="text-sm font-semibold text-slate-700">Decimal</span>
                 </label>
                 <button class="px-5 py-2 text-sm font-semibold text-white bg-blue-600 rounded-lg shadow-sm hover:bg-blue-700 h-[42px]">Add</button>
             </form>
             
-            <div class="flex flex-wrap gap-2">
+            <div class="flex flex-col gap-2">
                 @foreach($units as $u)
-                <span class="rounded-lg bg-white border border-slate-200 shadow-sm px-3 py-2 text-sm flex items-center gap-2">
-                    {{ $u->name }} 
-                    <strong class="bg-slate-100 text-slate-600 px-1.5 rounded text-xs">{{ $u->symbol }}</strong>
-                </span>
+                <div class="flex items-center justify-between rounded-lg bg-white border border-slate-200 shadow-sm px-3 py-2 text-sm">
+                    <div class="flex items-center gap-2">
+                        {{ $u->name }} 
+                        <strong class="bg-slate-100 text-slate-600 px-1.5 rounded text-xs">{{ $u->symbol }}</strong>
+                        @if($u->allows_decimal)
+                        <span class="text-[10px] bg-blue-50 text-blue-600 font-bold px-1.5 rounded uppercase">Dec</span>
+                        @endif
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button type="button" @click="editUnit = {{ $u->toJson() }}" class="text-blue-500 hover:text-blue-700 font-medium">Edit</button>
+                        <button type="button" @click="deleteUnit = {{ $u->id }}" class="text-red-500 hover:text-red-700 font-medium">Delete</button>
+                    </div>
+                </div>
                 @endforeach
             </div>
         </div>
     </section>
 
+    <!-- Categories Section -->
     <section class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
         <div class="bg-slate-50/50 px-6 py-4 border-b border-slate-100 flex items-center gap-3">
             <div class="grid h-10 w-10 place-items-center rounded-lg bg-blue-50 text-blue-500">
@@ -89,15 +101,109 @@
                 <button class="px-5 py-2 text-sm font-semibold text-white bg-blue-600 rounded-lg shadow-sm hover:bg-blue-700 h-[42px]">Add</button>
             </form>
             
-            <div class="flex flex-wrap gap-2">
+            <div class="flex flex-col gap-2">
                 @foreach($categories as $c)
-                <span class="rounded-lg bg-white border border-slate-200 shadow-sm px-3 py-2 text-sm font-medium text-slate-700">
-                    {{ $c->name }}
-                </span>
+                <div class="flex items-center justify-between rounded-lg bg-white border border-slate-200 shadow-sm px-3 py-2 text-sm font-medium text-slate-700">
+                    <div>
+                        {{ $c->name }}
+                        @if($c->parent_id)
+                        <span class="text-xs text-slate-400 font-normal block">Child of: {{ $categories->firstWhere('id', $c->parent_id)?->name }}</span>
+                        @endif
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button type="button" @click="editCategory = {{ $c->toJson() }}" class="text-blue-500 hover:text-blue-700 font-medium">Edit</button>
+                        <button type="button" @click="deleteCategory = {{ $c->id }}" class="text-red-500 hover:text-red-700 font-medium">Delete</button>
+                    </div>
+                </div>
                 @endforeach
             </div>
         </div>
     </section>
+
+    <!-- Edit Unit Modal -->
+    <div x-show="editUnit" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm">
+        <div @click.away="editUnit = null" class="w-full max-w-sm rounded-2xl bg-white shadow-xl overflow-hidden p-6">
+            <div class="flex justify-between items-center mb-5">
+                <h3 class="text-lg font-bold text-slate-800">Edit Unit</h3>
+                <button @click="editUnit = null" class="text-slate-400 hover:text-slate-600">✕</button>
+            </div>
+            <form :action="`{{ url('settings/units') }}/${editUnit?.id}`" method="post" class="space-y-4">
+                @csrf @method('PUT')
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">Name</label>
+                    <input class="w-full rounded-lg border-slate-200 py-2" name="name" :value="editUnit?.name" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">Symbol</label>
+                    <input class="w-full rounded-lg border-slate-200 py-2" name="symbol" :value="editUnit?.symbol" required>
+                </div>
+                <label class="flex items-center gap-2 normal-case py-1 cursor-pointer">
+                    <input type="hidden" name="allows_decimal" value="0">
+                    <input type="checkbox" name="allows_decimal" value="1" :checked="editUnit?.allows_decimal" class="rounded text-blue-600 focus:ring-blue-500"> 
+                    <span class="text-sm font-semibold text-slate-700">Allow Decimal</span>
+                </label>
+                <div class="flex gap-3 justify-end pt-4 border-t border-slate-100">
+                    <button type="button" @click="editUnit = null" class="px-4 py-2 font-semibold text-slate-600 hover:bg-slate-50 rounded-lg">Cancel</button>
+                    <button class="px-5 py-2 font-semibold text-white bg-blue-600 rounded-lg shadow-sm hover:bg-blue-700">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Category Modal -->
+    <div x-show="editCategory" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm">
+        <div @click.away="editCategory = null" class="w-full max-w-sm rounded-2xl bg-white shadow-xl overflow-hidden p-6">
+            <div class="flex justify-between items-center mb-5">
+                <h3 class="text-lg font-bold text-slate-800">Edit Category</h3>
+                <button @click="editCategory = null" class="text-slate-400 hover:text-slate-600">✕</button>
+            </div>
+            <form :action="`{{ url('settings/categories') }}/${editCategory?.id}`" method="post" class="space-y-4">
+                @csrf @method('PUT')
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">Name</label>
+                    <input class="w-full rounded-lg border-slate-200 py-2" name="name" :value="editCategory?.name" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">Parent Category</label>
+                    <select class="w-full rounded-lg border-slate-200 py-2" name="parent_id" :value="editCategory?.parent_id">
+                        <option value="">None</option>
+                        @foreach($categories as $c)
+                        <option value="{{ $c->id }}">{{ $c->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="flex gap-3 justify-end pt-4 border-t border-slate-100">
+                    <button type="button" @click="editCategory = null" class="px-4 py-2 font-semibold text-slate-600 hover:bg-slate-50 rounded-lg">Cancel</button>
+                    <button class="px-5 py-2 font-semibold text-white bg-blue-600 rounded-lg shadow-sm hover:bg-blue-700">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Delete Modals -->
+    <div x-show="deleteUnit" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm">
+        <div @click.away="deleteUnit = null" class="w-full max-w-sm rounded-2xl bg-white shadow-xl overflow-hidden p-6 text-center">
+            <h3 class="text-lg font-bold text-slate-800 mb-2">Delete Unit?</h3>
+            <p class="text-slate-500 text-sm mb-6">This action cannot be undone.</p>
+            <form :action="`{{ url('settings/units') }}/${deleteUnit}`" method="post" class="flex gap-3 justify-center">
+                @csrf @method('DELETE')
+                <button type="button" @click="deleteUnit = null" class="px-4 py-2 font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg">Cancel</button>
+                <button class="px-5 py-2 font-semibold text-white bg-red-600 rounded-lg shadow-sm hover:bg-red-700">Delete</button>
+            </form>
+        </div>
+    </div>
+
+    <div x-show="deleteCategory" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm">
+        <div @click.away="deleteCategory = null" class="w-full max-w-sm rounded-2xl bg-white shadow-xl overflow-hidden p-6 text-center">
+            <h3 class="text-lg font-bold text-slate-800 mb-2">Delete Category?</h3>
+            <p class="text-slate-500 text-sm mb-6">This action cannot be undone.</p>
+            <form :action="`{{ url('settings/categories') }}/${deleteCategory}`" method="post" class="flex gap-3 justify-center">
+                @csrf @method('DELETE')
+                <button type="button" @click="deleteCategory = null" class="px-4 py-2 font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg">Cancel</button>
+                <button class="px-5 py-2 font-semibold text-white bg-red-600 rounded-lg shadow-sm hover:bg-red-700">Delete</button>
+            </form>
+        </div>
+    </div>
 </div>
 
 @endsection

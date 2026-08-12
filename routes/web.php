@@ -45,10 +45,18 @@ Route::middleware('auth')->group(function () {
     Route::get('/reports/dead-stock', [ReportController::class, 'deadStock'])->name('reports.dead');
     Route::get('/settings/{section?}', [SettingsController::class, 'show'])->name('settings.show');
     Route::put('/settings', [SettingsController::class, 'update'])->name('settings.update');
+    
     Route::post('/settings/units', [SettingsController::class, 'unit'])->name('settings.units.store');
+    Route::put('/settings/units/{unit}', [SettingsController::class, 'updateUnit'])->name('settings.units.update');
+    Route::delete('/settings/units/{unit}', [SettingsController::class, 'destroyUnit'])->name('settings.units.destroy');
+    
     Route::post('/settings/categories', [SettingsController::class, 'category'])->name('settings.categories.store');
+    Route::put('/settings/categories/{category}', [SettingsController::class, 'updateCategory'])->name('settings.categories.update');
+    Route::delete('/settings/categories/{category}', [SettingsController::class, 'destroyCategory'])->name('settings.categories.destroy');
+    
     Route::post('/settings/payment-methods',[SettingsController::class, 'paymentMethod'])->name('settings.payment-methods.store');
-    Route::post('/settings/payment-methods',[SettingsController::class, 'paymentMethod'])->name('settings.payment-methods.store');
+    Route::put('/settings/payment-methods/{method}', [SettingsController::class, 'updatePaymentMethod'])->name('settings.payment-methods.update');
+    Route::delete('/settings/payment-methods/{method}', [SettingsController::class, 'destroyPaymentMethod'])->name('settings.payment-methods.destroy');
 
     // Placeholder routes for new sidebar structure
     Route::get('/users', fn() => 'Users Page')->name('users.index');

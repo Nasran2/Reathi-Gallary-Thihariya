@@ -75,6 +75,20 @@ class SettingsController extends Controller
         return back()->with('success', 'Unit added.');
     }
 
+    public function updateUnit(Request $r, Unit $unit)
+    {
+        $this->authorize('manage-settings');
+        $unit->update($r->validate(['name' => 'required|max:60', 'symbol' => 'required|max:16|unique:units,symbol,'.$unit->id]) + ['allows_decimal' => $r->boolean('allows_decimal')]);
+        return back()->with('success', 'Unit updated.');
+    }
+
+    public function destroyUnit(Unit $unit)
+    {
+        $this->authorize('manage-settings');
+        $unit->delete();
+        return back()->with('success', 'Unit deleted.');
+    }
+
     public function category(Request $r)
     {
         $this->authorize('manage-settings');
@@ -84,6 +98,21 @@ class SettingsController extends Controller
         return back()->with('success', 'Category added.');
     }
 
+    public function updateCategory(Request $r, Category $category)
+    {
+        $this->authorize('manage-settings');
+        $d = $r->validate(['name' => 'required|max:100', 'parent_id' => 'nullable|exists:categories,id']);
+        $category->update($d);
+        return back()->with('success', 'Category updated.');
+    }
+
+    public function destroyCategory(Category $category)
+    {
+        $this->authorize('manage-settings');
+        $category->delete();
+        return back()->with('success', 'Category deleted.');
+    }
+
     public function paymentMethod(Request $r)
     {
         $this->authorize('manage-settings');
@@ -91,5 +120,20 @@ class SettingsController extends Controller
         PaymentMethod::create($d + ['active' => true, 'sort_order' => PaymentMethod::max('sort_order') + 1]);
 
         return back()->with('success', 'Payment method added.');
+    }
+
+    public function updatePaymentMethod(Request $r, PaymentMethod $method)
+    {
+        $this->authorize('manage-settings');
+        $d = $r->validate(['name' => 'required|max:80|unique:payment_methods,name,'.$method->id, 'code' => 'required|max:50|unique:payment_methods,code,'.$method->id, 'requires_reference' => 'boolean', 'active' => 'boolean']);
+        $method->update($d);
+        return back()->with('success', 'Payment method updated.');
+    }
+
+    public function destroyPaymentMethod(PaymentMethod $method)
+    {
+        $this->authorize('manage-settings');
+        $method->delete();
+        return back()->with('success', 'Payment method deleted.');
     }
 }
