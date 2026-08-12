@@ -39,11 +39,11 @@ class CoreAccountingTest extends TestCase
         BusinessSetting::write('remnant_partial_sale', true);
     }
 
-    private function product(string $name, Unit $base, array $units, string $average = '0'): Product
+    private function product(string $name, Unit $base, array $units, string $average = '0', string $mainPrice = '0', string $remnantPrice = '0'): Product
     {
-        $p = Product::create(['name' => $name, 'sku' => Str::upper(Str::random(8)), 'base_unit_id' => $base->id, 'default_purchase_unit_id' => $base->id, 'default_selling_unit_id' => $base->id, 'average_cost' => $average]);
-        foreach ($units as [$unit,$rate,$main,$remnant]) {
-            $p->productUnits()->create(['unit_id' => $unit->id, 'conversion_rate' => $rate, 'main_selling_price' => $main, 'remnant_selling_price' => $remnant, 'can_purchase' => true, 'can_sell' => true]);
+        $p = Product::create(['name' => $name, 'sku' => Str::upper(Str::random(8)), 'base_unit_id' => $base->id, 'default_purchase_unit_id' => $base->id, 'default_selling_unit_id' => $base->id, 'average_cost' => $average, 'main_selling_price' => $mainPrice, 'remnant_selling_price' => $remnantPrice]);
+        foreach ($units as [$unit,$rate]) {
+            $p->productUnits()->create(['unit_id' => $unit->id, 'conversion_rate' => $rate, 'can_purchase' => true, 'can_sell' => true]);
         }
 
         return $p;
@@ -58,7 +58,7 @@ class CoreAccountingTest extends TestCase
     {
         $piece = Unit::create(['name' => 'Piece', 'symbol' => 'pc']);
         $dozen = Unit::create(['name' => 'Dozen', 'symbol' => 'doz']);
-        $p = $this->product('Buttons', $piece, [[$piece, 1, 100, 80], [$dozen, 12, 1100, 900]]);
+        $p = $this->product('Buttons', $piece, [[$piece, 1], [$dozen, 12]], '0', '100', '80');
         app(PurchaseService::class)->receive(['supplier_id' => $this->supplier->id, 'store_id' => $this->store->id, 'purchase_date' => now()->toDateString(), 'extra_cost_total' => 0, 'items' => [['product_id' => $p->id, 'unit_id' => $dozen->id, 'quantity' => 10, 'supplier_unit_cost' => 600, 'discount_amount' => 0, 'tax_amount' => 0]]]);
         $this->assertSame('120.000000', InventoryBalance::first()->quantity);
         $this->sale($p, $dozen, '1.5', '1100');
@@ -69,7 +69,7 @@ class CoreAccountingTest extends TestCase
     {
         $meter = Unit::create(['name' => 'Meter', 'symbol' => 'm']);
         $yard = Unit::create(['name' => 'Yard', 'symbol' => 'yd']);
-        $p = $this->product('Fabric', $meter, [[$meter, 1, 850, 600], [$yard, '.9144', 800, 550]], '500');
+        $p = $this->product('Fabric', $meter, [[$meter, 1], [$yard, '.9144']], '500', '850', '600');
         app(InventoryService::class)->move($p, $this->store->id, 'main', 'opening_stock', 100, 0, 500);
         $this->sale($p, $yard, '10', '800');
         $this->assertSame('90.856000', InventoryBalance::first()->fresh()->quantity);
@@ -78,7 +78,7 @@ class CoreAccountingTest extends TestCase
     public function test_weighted_average_cost_is_calculated_at_high_precision(): void
     {
         $meter = Unit::create(['name' => 'Meter', 'symbol' => 'm']);
-        $p = $this->product('Fabric', $meter, [[$meter, 1, 800, 500]], '500');
+        $p = $this->product('Fabric', $meter, [[$meter, 1]], '500', '800', '500');
         app(InventoryService::class)->move($p, $this->store->id, 'main', 'opening_stock', 100, 0, 500);
         app(PurchaseService::class)->receive(['supplier_id' => $this->supplier->id, 'store_id' => $this->store->id, 'purchase_date' => now()->toDateString(), 'extra_cost_total' => 0, 'items' => [['product_id' => $p->id, 'unit_id' => $meter->id, 'quantity' => 50, 'supplier_unit_cost' => 600, 'discount_amount' => 0, 'tax_amount' => 0]]]);
         $this->assertSame('533.33333333', $p->fresh()->average_cost);
@@ -87,7 +87,7 @@ class CoreAccountingTest extends TestCase
     public function test_historical_profit_does_not_change_when_average_cost_changes(): void
     {
         $meter = Unit::create(['name' => 'Meter', 'symbol' => 'm']);
-        $p = $this->product('Fabric', $meter, [[$meter, 1, 800, 400]], '500');
+        $p = $this->product('Fabric', $meter, [[$meter, 1]], '500', '800', '400');
         app(InventoryService::class)->move($p, $this->store->id, 'main', 'opening_stock', 10, 0, 500);
         $sale = $this->sale($p, $meter, '1', '800');
         $p->update(['average_cost' => 600]);
@@ -98,7 +98,7 @@ class CoreAccountingTest extends TestCase
     public function test_remnant_transfer_preserves_combined_physical_stock(): void
     {
         $meter = Unit::create(['name' => 'Meter', 'symbol' => 'm']);
-        $p = $this->product('Fabric', $meter, [[$meter, 1, 800, 300]], '500');
+        $p = $this->product('Fabric', $meter, [[$meter, 1]], '500', '800', '300');
         app(InventoryService::class)->move($p, $this->store->id, 'main', 'opening_stock', 2, 0, 500);
         $r = app(RemnantService::class)->transfer(['product_id' => $p->id, 'store_id' => $this->store->id, 'unit_id' => $meter->id, 'quantity' => '1.25', 'remnant_price' => 300, 'reason' => 'Remainder']);
         $this->assertSame('0.750000', InventoryBalance::where('inventory_type', 'main')->value('quantity'));
@@ -110,7 +110,7 @@ class CoreAccountingTest extends TestCase
     public function test_remnant_below_cost_sale_reports_a_real_loss(): void
     {
         $meter = Unit::create(['name' => 'Meter', 'symbol' => 'm']);
-        $p = $this->product('Fabric', $meter, [[$meter, 1, 800, 300]], '500');
+        $p = $this->product('Fabric', $meter, [[$meter, 1]], '500', '800', '300');
         app(InventoryService::class)->move($p, $this->store->id, 'main', 'opening_stock', 2, 0, 500);
         $r = app(RemnantService::class)->transfer(['product_id' => $p->id, 'store_id' => $this->store->id, 'unit_id' => $meter->id, 'quantity' => 1, 'remnant_price' => 300, 'reason' => 'Remainder']);
         $sale = $this->sale($p, $meter, '1', '300', 'remnant', $r->id);
@@ -121,7 +121,7 @@ class CoreAccountingTest extends TestCase
     public function test_supplier_due_uses_invoice_cost_not_landed_cost(): void
     {
         $meter = Unit::create(['name' => 'Meter', 'symbol' => 'm']);
-        $p = $this->product('Fabric', $meter, [[$meter, 1, 1500, 900]]);
+        $p = $this->product('Fabric', $meter, [[$meter, 1]], '0', '1500', '900');
         app(PurchaseService::class)->receive(['supplier_id' => $this->supplier->id, 'store_id' => $this->store->id, 'purchase_date' => now()->toDateString(), 'extra_cost_total' => 5000, 'items' => [['product_id' => $p->id, 'unit_id' => $meter->id, 'quantity' => 100, 'supplier_unit_cost' => 1000, 'discount_amount' => 0, 'tax_amount' => 0]]]);
         $this->assertSame('100000.0000', SupplierLedger::latest()->value('balance_after'));
         $this->assertSame('1050.00000000', $p->fresh()->average_cost);
@@ -130,7 +130,7 @@ class CoreAccountingTest extends TestCase
     public function test_checkout_idempotency_prevents_double_stock_deduction(): void
     {
         $meter = Unit::create(['name' => 'Meter', 'symbol' => 'm']);
-        $p = $this->product('Fabric', $meter, [[$meter, 1, 800, 300]], '500');
+        $p = $this->product('Fabric', $meter, [[$meter, 1]], '500', '800', '300');
         app(InventoryService::class)->move($p, $this->store->id, 'main', 'opening_stock', 10, 0, 500);
         $payload = ['sale_type' => 'main', 'store_id' => $this->store->id, 'idempotency_key' => 'stable-key', 'items' => [['product_id' => $p->id, 'unit_id' => $meter->id, 'quantity' => 2, 'unit_price' => 800]], 'payments' => [['payment_method_id' => $this->cash->id, 'amount' => 1600]]];
         $a = app(SaleService::class)->checkout($payload);

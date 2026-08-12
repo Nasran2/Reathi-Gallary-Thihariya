@@ -81,7 +81,7 @@
                                 <div class="text-xs text-slate-500 mt-1">1 {{ $pu->unit->symbol }} = {{ (float)$pu->conversion_rate }} {{ $product->baseUnit->symbol }}</div>
                             </div>
                             <div class="text-right">
-                                <div class="font-bold text-teal">Rs. {{ number_format($pu->main_selling_price, 2) }}</div>
+                                <div class="font-bold text-teal">Rs. {{ number_format($product->main_selling_price * $pu->conversion_rate, 2) }}</div>
                                 <div class="text-[10px] text-slate-400 font-medium uppercase tracking-wide mt-0.5">Selling Price</div>
                             </div>
                         </div>

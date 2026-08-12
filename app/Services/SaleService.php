@@ -69,7 +69,7 @@ class SaleService
                         throw ValidationException::withMessages(['items' => 'This remnant must be sold as a whole piece.']);
                     }
                 }
-                $price = Decimal::of($line['unit_price'] ?? ($type === 'main' ? $pu->main_selling_price : $remnant->remnant_price));
+                $price = Decimal::of($line['unit_price'] ?? ($type === 'main' ? ($product->main_selling_price * $pu->conversion_rate) : $remnant->remnant_price));
                 $lineGross = $qty->multipliedBy($price);
                 $lineDiscount = Decimal::of($line['discount_amount'] ?? 0);
                 $lineTax = Decimal::of($line['tax_amount'] ?? 0);

@@ -10,7 +10,7 @@ class Product extends Model
 
     protected function casts(): array
     {
-        return ['average_cost' => 'decimal:8', 'minimum_stock' => 'decimal:6', 'reorder_level' => 'decimal:6', 'tax_rate' => 'decimal:4', 'track_rolls' => 'boolean', 'active' => 'boolean'];
+        return ['average_cost' => 'decimal:8', 'main_selling_price' => 'decimal:4', 'remnant_selling_price' => 'decimal:4', 'minimum_stock' => 'decimal:6', 'reorder_level' => 'decimal:6', 'tax_rate' => 'decimal:4', 'track_rolls' => 'boolean', 'active' => 'boolean'];
     }
 
     public function category()

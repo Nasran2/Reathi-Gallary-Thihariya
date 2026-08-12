@@ -23,7 +23,7 @@ class RemnantService
                 'source_roll_id' => $data['source_roll_id'] ?? null, 'unit_id' => $data['unit_id'], 'transferred_by' => $userId,
                 'original_quantity' => $data['quantity'], 'remaining_quantity' => $data['quantity'], 'conversion_rate' => $pu->conversion_rate,
                 'original_base_quantity' => $baseQty, 'remaining_base_quantity' => $baseQty, 'cost_per_base_unit' => $product->average_cost,
-                'normal_price' => $pu->main_selling_price, 'remnant_price' => $data['remnant_price'],
+                'normal_price' => $product->main_selling_price * $pu->conversion_rate, 'remnant_price' => $data['remnant_price'],
                 'discount_percent' => $data['discount_percent'] ?? 0, 'status' => 'available', 'reason' => $data['reason'] ?? 'Cut piece', 'notes' => $data['notes'] ?? null,
             ]);
             $this->inventory->move($product, $data['store_id'], 'main', 'remnant_transfer', 0, $baseQty, $product->average_cost, $remnant, $userId, 'Transfer to remnant');

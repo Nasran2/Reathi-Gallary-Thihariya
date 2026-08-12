@@ -177,8 +177,8 @@ class ReportController extends Controller
             $main = $p->balances->where('inventory_type', 'main')->sum('quantity');
             $remnant = $p->balances->where('inventory_type', 'remnant')->sum('quantity');
             $qty = $type === 'main' ? $main : ($type === 'remnant' ? $remnant : $main + $remnant);
-            $mainPrice = $p->productUnits->first()?->main_selling_price ?? 0;
-            $remnantPrice = $p->productUnits->first()?->remnant_selling_price ?? 0;
+            $mainPrice = $p->main_selling_price ?? 0;
+            $remnantPrice = $p->remnant_selling_price ?? 0;
             
             if ($type === 'main') {
                 $sellingValue = $main * $mainPrice;

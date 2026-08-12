@@ -44,15 +44,15 @@ class DatabaseSeeder extends Seeder
         }
 
         $products = [
-            ['sku' => 'FAB-COT-001', 'name' => 'Premium Cotton Poplin', 'category' => $cotton, 'base' => $meter, 'avg' => 520, 'stock' => 85.75, 'attrs' => ['colour' => 'Ivory', 'fabric_type' => 'Poplin', 'material' => '100% Cotton', 'width' => '58 in'], 'units' => [[$meter, 1, 850, 620], [$yard, .9144, 800, 580], [$roll, 50, 39000, 30000]]],
-            ['sku' => 'FAB-LIN-002', 'name' => 'Washed Linen Blend', 'category' => $linen, 'base' => $meter, 'avg' => 710, 'stock' => 48.5, 'attrs' => ['colour' => 'Sage', 'fabric_type' => 'Linen blend', 'material' => 'Linen / Viscose', 'width' => '60 in'], 'units' => [[$meter, 1, 1150, 800], [$yard, .9144, 1080, 750]]],
-            ['sku' => 'ACC-BTN-001', 'name' => 'Pearl Shirt Buttons', 'category' => $accessories, 'base' => $piece, 'avg' => 35, 'stock' => 240, 'attrs' => ['colour' => 'Pearl'], 'units' => [[$piece, 1, 75, 50], [$dozen, 12, 780, 550]]],
+            ['sku' => 'FAB-COT-001', 'name' => 'Premium Cotton Poplin', 'category' => $cotton, 'base' => $meter, 'avg' => 520, 'main_price' => 850, 'remnant_price' => 620, 'stock' => 85.75, 'attrs' => ['colour' => 'Ivory', 'fabric_type' => 'Poplin', 'material' => '100% Cotton', 'width' => '58 in'], 'units' => [[$meter, 1], [$yard, .9144], [$roll, 50]]],
+            ['sku' => 'FAB-LIN-002', 'name' => 'Washed Linen Blend', 'category' => $linen, 'base' => $meter, 'avg' => 710, 'main_price' => 1150, 'remnant_price' => 800, 'stock' => 48.5, 'attrs' => ['colour' => 'Sage', 'fabric_type' => 'Linen blend', 'material' => 'Linen / Viscose', 'width' => '60 in'], 'units' => [[$meter, 1], [$yard, .9144]]],
+            ['sku' => 'ACC-BTN-001', 'name' => 'Pearl Shirt Buttons', 'category' => $accessories, 'base' => $piece, 'avg' => 35, 'main_price' => 75, 'remnant_price' => 50, 'stock' => 240, 'attrs' => ['colour' => 'Pearl'], 'units' => [[$piece, 1], [$dozen, 12]]],
         ];
         $inventory = app(InventoryService::class);
         foreach ($products as $data) {
-            $p = Product::firstOrCreate(['sku' => $data['sku']], ['name' => $data['name'], 'category_id' => $data['category']->id, 'base_unit_id' => $data['base']->id, 'default_purchase_unit_id' => $data['base']->id, 'default_selling_unit_id' => $data['base']->id, 'default_supplier_id' => $supplier->id, 'average_cost' => $data['avg'], 'minimum_stock' => 5, 'reorder_level' => 10, 'active' => true] + $data['attrs']);
-            foreach ($data['units'] as [$unit,$rate,$main,$remnant]) {
-                $p->productUnits()->updateOrCreate(['unit_id' => $unit->id], ['conversion_rate' => $rate, 'main_selling_price' => $main, 'remnant_selling_price' => $remnant, 'can_purchase' => true, 'can_sell' => true]);
+            $p = Product::firstOrCreate(['sku' => $data['sku']], ['name' => $data['name'], 'category_id' => $data['category']->id, 'base_unit_id' => $data['base']->id, 'default_purchase_unit_id' => $data['base']->id, 'default_selling_unit_id' => $data['base']->id, 'default_supplier_id' => $supplier->id, 'average_cost' => $data['avg'], 'main_selling_price' => $data['main_price'], 'remnant_selling_price' => $data['remnant_price'], 'minimum_stock' => 5, 'reorder_level' => 10, 'active' => true] + $data['attrs']);
+            foreach ($data['units'] as [$unit,$rate]) {
+                $p->productUnits()->updateOrCreate(['unit_id' => $unit->id], ['conversion_rate' => $rate, 'can_purchase' => true, 'can_sell' => true]);
             }
             if (! $p->balances()->where(['store_id' => $store->id, 'inventory_type' => 'main'])->exists()) {
                 $inventory->move($p, $store->id, 'main', 'opening_stock', $data['stock'], 0, $data['avg'], null, $admin->id, 'Demo opening stock');

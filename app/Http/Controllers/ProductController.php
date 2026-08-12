@@ -32,6 +32,7 @@ class ProductController extends Controller
             unset($data['units']);
             $product = Product::create($data);
             foreach ($units as $u) {
+                $u['conversion_rate'] = $u['base_quantity'] / $u['unit_quantity'];
                 $product->productUnits()->create($u);
             }
         });
@@ -54,11 +55,26 @@ class ProductController extends Controller
             $product->update($data);
             $product->productUnits()->delete();
             foreach ($units as $u) {
+                $u['conversion_rate'] = $u['base_quantity'] / $u['unit_quantity'];
                 $product->productUnits()->create($u);
             }
         });
 
         return redirect()->route('products.index')->with('success', 'Product updated.');
+    }
+
+    public function destroy(Product $product)
+    {
+        $this->authorize('manage-products');
+        try {
+            DB::transaction(function () use ($product) {
+                $product->productUnits()->delete();
+                $product->delete();
+            });
+            return redirect()->route('products.index')->with('success', 'Product deleted successfully.');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Cannot delete product. It may be linked to existing sales or inventory.');
+        }
     }
 
     public function show(Product $product)
@@ -96,6 +112,6 @@ class ProductController extends Controller
 
     private function validated(Request $r, ?Product $p = null)
     {
-        return $r->validate(['name' => 'required|max:150', 'sku' => 'required|max:80|unique:products,sku,'.($p?->id ?? 'NULL'), 'barcode' => 'nullable|max:80|unique:products,barcode,'.($p?->id ?? 'NULL'), 'category_id' => 'nullable|exists:categories,id', 'base_unit_id' => 'required|exists:units,id', 'default_purchase_unit_id' => 'nullable|exists:units,id', 'default_selling_unit_id' => 'nullable|exists:units,id', 'default_supplier_id' => 'nullable|exists:suppliers,id', 'brand_id' => 'nullable|exists:brands,id', 'fabric_type' => 'nullable|max:100', 'material' => 'nullable|max:100', 'colour' => 'nullable|max:100', 'pattern' => 'nullable|max:100', 'width' => 'nullable|max:100', 'description' => 'nullable', 'minimum_stock' => 'required|numeric|min:0', 'reorder_level' => 'required|numeric|min:0', 'tax_rate' => 'nullable|numeric|min:0', 'track_rolls' => 'boolean', 'active' => 'boolean', 'units' => 'required|array|min:1', 'units.*.unit_id' => 'required|distinct|exists:units,id', 'units.*.conversion_rate' => 'required|numeric|gt:0', 'units.*.main_selling_price' => 'required|numeric|min:0', 'units.*.remnant_selling_price' => 'required|numeric|min:0', 'units.*.can_purchase' => 'boolean', 'units.*.can_sell' => 'boolean']);
+        return $r->validate(['name' => 'required|max:150', 'sku' => 'required|max:80|unique:products,sku,'.($p?->id ?? 'NULL'), 'barcode' => 'nullable|max:80|unique:products,barcode,'.($p?->id ?? 'NULL'), 'category_id' => 'nullable|exists:categories,id', 'base_unit_id' => 'required|exists:units,id', 'default_purchase_unit_id' => 'nullable|exists:units,id', 'default_selling_unit_id' => 'nullable|exists:units,id', 'default_supplier_id' => 'nullable|exists:suppliers,id', 'brand_id' => 'nullable|exists:brands,id', 'fabric_type' => 'nullable|max:100', 'material' => 'nullable|max:100', 'colour' => 'nullable|max:100', 'pattern' => 'nullable|max:100', 'width' => 'nullable|max:100', 'description' => 'nullable', 'main_selling_price' => 'required|numeric|min:0', 'remnant_selling_price' => 'required|numeric|min:0', 'minimum_stock' => 'required|numeric|min:0', 'reorder_level' => 'required|numeric|min:0', 'tax_rate' => 'nullable|numeric|min:0', 'track_rolls' => 'boolean', 'active' => 'boolean', 'units' => 'required|array|min:1', 'units.*.unit_id' => 'required|distinct|exists:units,id', 'units.*.base_quantity' => 'required|numeric|gt:0', 'units.*.unit_quantity' => 'required|numeric|gt:0', 'units.*.can_purchase' => 'boolean', 'units.*.can_sell' => 'boolean']);
     }
 }
