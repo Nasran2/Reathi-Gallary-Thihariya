@@ -93,7 +93,11 @@ class SettingsController extends Controller
     {
         $this->authorize('manage-settings');
         $d = $r->validate(['name' => 'required|max:100', 'parent_id' => 'nullable|exists:categories,id']);
-        Category::create($d + ['slug' => Str::slug($d['name']).'-'.Str::lower(Str::random(4)), 'active' => true]);
+        $cat = Category::create($d + ['slug' => Str::slug($d['name']).'-'.Str::lower(Str::random(4)), 'active' => true]);
+
+        if ($r->wantsJson()) {
+            return response()->json($cat);
+        }
 
         return back()->with('success', 'Category added.');
     }

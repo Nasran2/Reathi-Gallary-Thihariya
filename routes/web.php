@@ -27,9 +27,12 @@ Route::middleware('auth')->group(function () {
     Route::get('/pos/main', [PosController::class, 'index'])->defaults('type', 'main')->name('pos.main');
     Route::get('/pos/remnant', [PosController::class, 'index'])->defaults('type', 'remnant')->name('pos.remnant');
     Route::post('/pos/checkout', [PosController::class, 'checkout'])->name('pos.checkout');
-    Route::resource('products', ProductController::class)->except(['show', 'destroy']);
+    Route::resource('products', ProductController::class)->except(['destroy']);
     Route::resource('purchases', PurchaseController::class)->only(['index', 'create', 'store', 'show']);
     Route::resource('sales', SaleController::class)->only(['index', 'show']);
+    Route::get('/sales/{sale}/print', [SaleController::class, 'print'])->name('sales.print');
+    Route::post('/sales/{sale}/update-customer', [SaleController::class, 'updateCustomer'])->name('sales.update-customer');
+    Route::post('/sales/{sale}/sms', [SaleController::class, 'sms'])->name('sales.sms');
     Route::resource('customers', CustomerController::class)->only(['index', 'store']);
     Route::resource('suppliers', SupplierController::class)->only(['index', 'store']);
     Route::resource('expenses', ExpenseController::class)->only(['index', 'store']);
@@ -61,9 +64,9 @@ Route::middleware('auth')->group(function () {
     // Placeholder routes for new sidebar structure
     Route::get('/users', fn() => 'Users Page')->name('users.index');
     Route::get('/roles', fn() => 'Roles Page')->name('roles.index');
-    Route::get('/categories', fn() => 'Categories Page')->name('categories.index');
-    Route::get('/units', fn() => 'Units Page')->name('units.index');
-    Route::get('/brands', fn() => 'Brands Page')->name('brands.index');
+    Route::get('/categories', [ProductController::class, 'categories'])->name('categories.index');
+    Route::get('/units', [ProductController::class, 'units'])->name('units.index');
+    Route::get('/brands', [ProductController::class, 'brands'])->name('brands.index');
     Route::get('/purchases/returns', fn() => 'Purchase Returns Page')->name('purchases.returns');
     Route::get('/sales/returns', fn() => 'Sales Returns Page')->name('sales.returns');
     Route::get('/distribution/vehicles', fn() => 'Vehicles Page')->name('distribution.vehicles');
