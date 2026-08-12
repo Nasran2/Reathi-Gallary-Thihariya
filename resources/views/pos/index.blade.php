@@ -16,4 +16,205 @@ else{$catalog=$items->map(fn($r)=>['key'=>'r'.$r->id,'product_id'=>$r->product_i
  
  <form id="checkout-form" method="post" action="{{ route('pos.checkout') }}" style="display:none;">@csrf<input type="hidden" name="sale_type" value="{{ $type }}"><input type="hidden" name="store_id" value="{{ $store->id }}"><input type="hidden" name="idempotency_key" :value="token"><input type="hidden" name="customer_id" :value="customer"><input type="hidden" name="notes" :value="sellNote"><input type="hidden" name="staff_note" :value="staffNote"></form>
 </div>
+
+@if(isset($saleSuccess) && $saleSuccess)
+<div x-data="saleSuccessModal()" x-cloak class="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm">
+    <div class="w-full max-w-2xl bg-white rounded-2xl shadow-2xl overflow-hidden" x-show="!smsModal">
+        <div class="bg-emerald-500 p-6 text-center text-white relative">
+            <button @click="closeAll()" class="absolute right-4 top-4 text-white/80 hover:text-white"><i class="ti ti-x text-2xl"></i></button>
+            <div class="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-white/20 mb-4">
+                <i class="ti ti-check text-4xl"></i>
+            </div>
+            <h2 class="text-3xl font-serif font-bold">Sale Completed!</h2>
+            <p class="mt-2 text-emerald-100">{{ $saleSuccess->invoice_no }} · {{ $saleSuccess->customer?->name ?? 'Walk-in Customer' }}</p>
+        </div>
+        
+        <div class="p-8">
+            <div class="flex justify-between items-center bg-slate-50 p-4 rounded-xl border border-slate-100 mb-6">
+                <div>
+                    <div class="text-sm font-semibold text-slate-500 uppercase tracking-wider">Total Amount</div>
+                    <div class="text-2xl font-bold text-slate-800">Rs. {{ number_format($saleSuccess->grand_total, 2) }}</div>
+                </div>
+                @if($saleSuccess->due_total > 0)
+                <div class="text-right">
+                    <div class="text-sm font-semibold text-amber-600 uppercase tracking-wider">Due Amount</div>
+                    <div class="text-2xl font-bold text-amber-700">Rs. {{ number_format($saleSuccess->due_total, 2) }}</div>
+                </div>
+                @endif
+            </div>
+            
+            <div class="grid grid-cols-2 gap-4">
+                <a href="{{ route('sales.pdf', $saleSuccess->id) }}" class="flex flex-col items-center justify-center p-4 bg-indigo-50 hover:bg-indigo-100 border border-indigo-100 rounded-xl text-indigo-700 transition font-bold gap-2">
+                    <i class="ti ti-file-download text-3xl"></i> Download PDF Invoice
+                </a>
+                <button type="button" @click="openSmsModal()" class="flex flex-col items-center justify-center p-4 bg-emerald-50 hover:bg-emerald-100 border border-emerald-100 rounded-xl text-emerald-700 transition font-bold gap-2">
+                    <i class="ti ti-message-circle text-3xl"></i> Send SMS Receipt
+                </button>
+            </div>
+            
+            <div class="mt-6 pt-6 border-t border-slate-100 text-center">
+                <button @click="closeAll()" class="btn-indigo px-8 py-3 w-full">Start New Sale</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- SMS Modal (Nested state) -->
+    <div x-show="smsModal" @click.away="smsModal = false" class="w-full max-w-md rounded-2xl bg-white shadow-xl overflow-hidden p-6 relative">
+        <div x-show="smsSending" class="absolute inset-0 bg-white/80 backdrop-blur-sm z-10 flex flex-col items-center justify-center">
+            <div class="text-indigo-600 mb-2">
+                <i class="ti ti-loader animate-spin text-4xl"></i>
+            </div>
+            <div class="font-semibold text-slate-700">Sending SMS...</div>
+        </div>
+        
+        <div x-show="smsSuccess" class="absolute inset-0 bg-white z-10 flex flex-col items-center justify-center text-center p-6">
+            <div class="h-16 w-16 bg-emerald-100 text-emerald-500 rounded-full flex items-center justify-center mb-4">
+                <i class="ti ti-check text-3xl"></i>
+            </div>
+            <h3 class="text-xl font-bold text-slate-800 mb-2">SMS Sent Successfully!</h3>
+            <p class="text-slate-500 text-sm mb-6">The receipt link has been sent to the customer.</p>
+            <button type="button" @click="closeAll()" class="px-6 py-2.5 font-bold text-white bg-slate-800 rounded-xl hover:bg-slate-900 w-full">Done</button>
+        </div>
+        
+        <div class="flex justify-between items-center mb-5">
+            <button @click="smsModal = false" class="text-slate-400 hover:text-slate-600 flex items-center gap-1 text-sm font-semibold"><i class="ti ti-arrow-left text-lg"></i> Back</button>
+            <h3 class="text-xl font-bold text-slate-800">Send SMS</h3>
+        </div>
+        
+        <div x-show="!customerId" class="mb-4 text-center">
+            <div class="bg-amber-50 text-amber-800 p-4 rounded-xl border border-amber-200 mb-4 text-sm text-left">
+                <i class="ti ti-alert-triangle mr-1"></i> This is a walk-in sale. Attach a customer to send SMS.
+            </div>
+            <div class="text-left mb-4">
+                <label class="block text-sm font-semibold text-slate-700 mb-1.5">Select Existing Customer</label>
+                <select class="w-full rounded-xl border-slate-200 py-2.5 px-3 bg-slate-50" x-model="selectedCustomer">
+                    <option value="">-- Choose Customer --</option>
+                    @foreach(\App\Models\Customer::whereNotNull('mobile')->orderBy('name')->get() as $c)
+                        <option value="{{ $c->id }}" data-phone="{{ $c->mobile }}">{{ $c->name }} ({{ $c->mobile }})</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="relative flex items-center py-2 mb-4">
+                <div class="flex-grow border-t border-slate-200"></div>
+                <span class="flex-shrink-0 mx-4 text-slate-400 text-xs font-semibold uppercase">OR QUICK ADD</span>
+                <div class="flex-grow border-t border-slate-200"></div>
+            </div>
+            <div class="text-left space-y-3">
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">New Customer Name</label>
+                    <input type="text" x-model="newCustomerName" class="w-full rounded-xl border-slate-200 py-2 px-3" placeholder="John Doe">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">Mobile Number</label>
+                    <input type="text" x-model="newCustomerPhone" class="w-full rounded-xl border-slate-200 py-2 px-3" placeholder="07XXXXXXXX">
+                </div>
+            </div>
+        </div>
+        
+        <div x-show="customerId && !customerPhone" class="mb-4">
+            <div class="bg-blue-50 text-blue-800 p-4 rounded-xl border border-blue-200 mb-4 text-sm">
+                Customer <strong>{{ $saleSuccess->customer?->name }}</strong> has no phone number.
+            </div>
+            <label class="block text-sm font-semibold text-slate-700 mb-1">Mobile Number</label>
+            <input type="text" x-model="customerPhone" class="w-full rounded-xl border-slate-200 py-2.5 px-3 text-lg font-bold" placeholder="07XXXXXXXX">
+        </div>
+        
+        <div x-show="customerId && customerPhone" class="mb-6">
+            <p class="text-slate-600 mb-2">Send receipt via SMS to:</p>
+            <div class="flex items-center gap-3 p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                <div class="h-10 w-10 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center font-bold text-lg">
+                    <i class="ti ti-user"></i>
+                </div>
+                <div>
+                    <div class="font-bold text-slate-800">{{ $saleSuccess->customer?->name }}</div>
+                    <div class="text-slate-500 font-mono text-sm" x-text="customerPhone"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="flex gap-3 justify-end pt-2 mt-4 border-t border-slate-100">
+            <button type="button" @click="smsModal = false" class="px-5 py-2.5 font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition">Cancel</button>
+            <button type="button" @click="processSms()" class="px-6 py-2.5 font-bold text-white bg-emerald-500 rounded-xl shadow-sm hover:bg-emerald-600 transition flex items-center gap-2" :disabled="!canSendSms()">
+                <i class="ti ti-send"></i> Send SMS
+            </button>
+        </div>
+    </div>
+</div>
+<script>
+function saleSuccessModal() {
+    return {
+        saleId: {{ $saleSuccess->id }},
+        customerId: {{ $saleSuccess->customer_id ?? 'null' }},
+        customerPhone: '{{ $saleSuccess->customer?->mobile ?? '' }}',
+        smsModal: false,
+        smsSending: false,
+        smsSuccess: false,
+        
+        selectedCustomer: '',
+        newCustomerName: '',
+        newCustomerPhone: '',
+        
+        openSmsModal() {
+            this.smsModal = true;
+            this.smsSuccess = false;
+        },
+        
+        closeAll() {
+            // Remove the session visually by hiding the modal
+            this.$el.remove();
+            // Refocus barcode scanner if possible
+            document.querySelector('[x-model="search"]')?.focus();
+        },
+        
+        canSendSms() {
+            if (this.customerId && this.customerPhone) return true;
+            if (!this.customerId) {
+                if (this.selectedCustomer) return true;
+                if (this.newCustomerName.trim() && this.newCustomerPhone.trim()) return true;
+            }
+            if (this.customerId && !this.customerPhone) {
+                if (this.customerPhone.trim()) return true;
+            }
+            return false;
+        },
+        
+        async processSms() {
+            if (!this.canSendSms()) return;
+            this.smsSending = true;
+            try {
+                if (!this.customerId || (this.customerId && !this.customerPhone)) {
+                    let payload = {};
+                    if (!this.customerId && this.selectedCustomer) {
+                        payload = { attach_customer_id: this.selectedCustomer };
+                    } else if (!this.customerId && this.newCustomerName) {
+                        payload = { new_customer_name: this.newCustomerName, new_customer_phone: this.newCustomerPhone };
+                    } else if (this.customerId && this.customerPhone) {
+                        payload = { update_phone: this.customerPhone };
+                    }
+                    let updateRes = await fetch(`/sales/${this.saleId}/update-customer`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
+                        body: JSON.stringify(payload)
+                    });
+                    if (!updateRes.ok) throw new Error('Failed to update customer');
+                }
+                
+                let smsRes = await fetch(`/sales/${this.saleId}/sms`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') }
+                });
+                if (!smsRes.ok) throw new Error('Failed to send SMS');
+                
+                this.smsSending = false;
+                this.smsSuccess = true;
+            } catch (e) {
+                this.smsSending = false;
+                alert('An error occurred: ' + e.message);
+            }
+        }
+    }
+}
+</script>
+@endif
+
 @push('scripts')<script>function pos(catalog,type){return{catalog,type,search:'',category:'',cart:[],customer:'',token:'{{ \Illuminate\Support\Str::uuid() }}',submitting:false,showPaymentModal:false,paymentRows:[],sellNote:'',staffNote:'',get filtered(){let s=this.search.toLowerCase();return this.catalog.filter(x=>(!this.category||String(x.category_id)===this.category)&&(!s||`${x.name} ${x.sku} ${x.barcode||''} ${x.remnant_no||''} ${x.colour||''}`.toLowerCase().includes(s)))},addFirst(){if(this.filtered[0])this.add(this.filtered[0])},available(item,u){return u?Number(item.stock/u.rate).toFixed(3):0},add(item){let u=item.units[0];if(!u)return;let key=item.key+'-'+u.unit_id,found=this.cart.find(x=>x.lineKey===key);if(found&&type==='main'){found.quantity+=1;return}this.cart.push({...item,lineKey:key,unit_id:u.unit_id,quantity:type==='remnant'?item.display_qty:1,price:u.price,discount:0,maxDisplay:Number(item.stock/u.rate).toFixed(6)})},unitChanged(line){let u=line.units.find(x=>x.unit_id==line.unit_id);line.price=u.price;line.maxDisplay=Number(item.stock/u.rate).toFixed(6);line.lineKey=line.key+'-'+u.unit_id},lineTotal(l){return Math.max(0,(Number(l.quantity)||0)*(Number(l.price)||0)-(Number(l.discount)||0))},get subtotal(){return this.cart.reduce((s,l)=>s+(Number(l.quantity)||0)*(Number(l.price)||0),0)},get discount(){return this.cart.reduce((s,l)=>s+(Number(l.discount)||0),0)},get total(){return Math.max(0,this.subtotal-this.discount)},get totalPaying(){return this.paymentRows.reduce((s,r)=>s+(Number(r.amount)||0),0)},get changeReturn(){return Math.max(0,this.totalPaying-this.total)},get balance(){return Math.max(0,this.total-this.totalPaying)},money(v){return Number(v||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})},openPaymentModal(){if(this.cart.length===0)return;this.paymentRows=[{amount:this.total,method_id:{{ $methods->firstWhere('code','cash')?->id ?? '""' }},note:''}];this.showPaymentModal=true;},duePay(){if(this.cart.length===0)return;if(!this.customer){alert("Please select a customer for a credit/due sale.");return;}this.paymentRows=[];this.submitSale();},quickPay(){if(this.cart.length===0)return;this.paymentRows=[{amount:this.total,method_id:{{ $methods->firstWhere('code','cash')?->id ?? '""' }},note:''}];this.submitSale();},handleKey(e){if(this.showPaymentModal)return;if(e.key==='F4'){e.preventDefault();this.openPaymentModal();}if(e.key==='F10'){e.preventDefault();this.quickPay();}},submitSale(){if(this.cart.length===0)return;if(this.paymentRows.length && this.paymentRows.some(r=>!r.method_id)){alert("Please select a payment method for all rows.");return;}this.submitting=true;let form=document.getElementById('checkout-form');this.cart.forEach((c,i)=>{form.insertAdjacentHTML('beforeend',`<input type="hidden" name="items[${i}][product_id]" value="${c.product_id}">`);if(c.remnant_id)form.insertAdjacentHTML('beforeend',`<input type="hidden" name="items[${i}][remnant_id]" value="${c.remnant_id}">`);form.insertAdjacentHTML('beforeend',`<input type="hidden" name="items[${i}][unit_id]" value="${c.unit_id}"><input type="hidden" name="items[${i}][quantity]" value="${c.quantity||0}"><input type="hidden" name="items[${i}][unit_price]" value="${c.price||0}"><input type="hidden" name="items[${i}][discount_amount]" value="${c.discount||0}">`)});this.paymentRows.forEach((r,i)=>{form.insertAdjacentHTML('beforeend',`<input type="hidden" name="payments[${i}][payment_method_id]" value="${r.method_id}"><input type="hidden" name="payments[${i}][amount]" value="${r.amount||0}"><input type="hidden" name="payments[${i}][reference]" value="${r.note||''}">`)});form.submit();}}}</script>@endpush @endsection

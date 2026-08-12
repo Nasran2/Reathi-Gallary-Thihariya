@@ -26,7 +26,12 @@ class PosController extends Controller
             $items = Product::with(['productUnits.unit', 'balances' => fn ($q) => $q->where('store_id', $store->id)->where('inventory_type', 'main')])->where('active', 1)->get();
         }
 
-return view('pos.index', compact('type', 'store', 'customers', 'methods', 'categories', 'items'));
+        $saleSuccess = null;
+        if (session('sale_success')) {
+            $saleSuccess = \App\Models\Sale::with(['customer', 'items.product', 'items.unit', 'payments.paymentMethod', 'publicToken'])->find(session('sale_success'));
+        }
+
+        return view('pos.index', compact('type', 'store', 'customers', 'methods', 'categories', 'items', 'saleSuccess'));
     }
 
     public function checkout(Request $r, SaleService $service, SmsService $sms)
@@ -37,6 +42,6 @@ return view('pos.index', compact('type', 'store', 'customers', 'methods', 'categ
             $sms->sendInvoice($sale, $r->user()->id);
         }
 
-return redirect()->route('sales.show',$sale)->with('success','Sale completed successfully.');
+        return redirect()->route('pos.' . $payload['sale_type'])->with('sale_success', $sale->id);
     }
 }

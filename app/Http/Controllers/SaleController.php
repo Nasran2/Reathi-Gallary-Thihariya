@@ -21,6 +21,16 @@ class SaleController extends Controller
         return view('sales.print', ['sale' => $sale->load('items.product', 'items.unit', 'payments.method', 'customer', 'store')]);
     }
     
+    public function pdf(Sale $sale)
+    {
+        $sale->load('items.product', 'items.unit', 'payments.method', 'customer', 'store');
+        
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('sales.pdf', compact('sale'));
+        
+        // Return download response
+        return $pdf->download('Invoice-' . $sale->invoice_no . '.pdf');
+    }
+    
     public function updateCustomer(\Illuminate\Http\Request $request, Sale $sale)
     {
         if ($request->has('attach_customer_id')) {

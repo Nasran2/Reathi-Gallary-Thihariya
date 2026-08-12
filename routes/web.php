@@ -31,6 +31,7 @@ Route::middleware('auth')->group(function () {
     Route::resource('purchases', PurchaseController::class)->only(['index', 'create', 'store', 'show']);
     Route::resource('sales', SaleController::class)->only(['index', 'show']);
     Route::get('/sales/{sale}/print', [SaleController::class, 'print'])->name('sales.print');
+    Route::get('/sales/{sale}/pdf', [SaleController::class, 'pdf'])->name('sales.pdf');
     Route::post('/sales/{sale}/update-customer', [SaleController::class, 'updateCustomer'])->name('sales.update-customer');
     Route::post('/sales/{sale}/sms', [SaleController::class, 'sms'])->name('sales.sms');
     Route::resource('customers', CustomerController::class)->only(['index', 'store']);
