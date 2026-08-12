@@ -50,10 +50,15 @@ $nav = [
         ['Issued Cheques', 'cheques.issued'],
     ], 'tabler-receipt'],
     ['Reports', [
-        ['Profit/Loss', 'reports.profit'],
         ['Sales Report', 'reports.sales'],
-        ['Purchase Report', 'reports.purchases'],
+        ['Profit/Loss', 'reports.profit'],
         ['Stock Report', 'reports.stock'],
+        ['Purchase Report', 'reports.purchases'],
+        ['Expense Report', 'reports.expenses'],
+        ['Due Bills Report', 'reports.due-bills'],
+        ['Customer Due Report', 'reports.customer-due'],
+        ['Daily Closing Report', 'reports.daily-closing'],
+        ['Dead Stock', 'reports.dead'],
     ], 'tabler-chart-bar'],
     ['Settings', [
         ['General Settings', 'settings.show', ['section' => 'general']],

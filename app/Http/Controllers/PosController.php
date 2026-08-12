@@ -28,7 +28,7 @@ class PosController extends Controller
 
         $saleSuccess = null;
         if (session('sale_success')) {
-            $saleSuccess = \App\Models\Sale::with(['customer', 'items.product', 'items.unit', 'payments.paymentMethod', 'publicToken'])->find(session('sale_success'));
+            $saleSuccess = \App\Models\Sale::with(['customer', 'items.product', 'items.unit', 'payments.method', 'publicToken'])->find(session('sale_success'));
         }
 
         return view('pos.index', compact('type', 'store', 'customers', 'methods', 'categories', 'items', 'saleSuccess'));
