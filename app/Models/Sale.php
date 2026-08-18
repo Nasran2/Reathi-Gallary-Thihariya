@@ -10,7 +10,7 @@ class Sale extends Model
 
     protected function casts(): array
     {
-        return ['sold_at' => 'datetime', 'subtotal' => 'decimal:4', 'discount_total' => 'decimal:4', 'tax_total' => 'decimal:4', 'grand_total' => 'decimal:4', 'paid_total' => 'decimal:4', 'due_total' => 'decimal:4', 'cost_total' => 'decimal:4', 'profit_total' => 'decimal:4'];
+        return ['sold_at' => 'datetime', 'subtotal' => 'decimal:4', 'discount_total' => 'decimal:4', 'tax_total' => 'decimal:4', 'grand_total' => 'decimal:4', 'paid_total' => 'decimal:4', 'pending_total' => 'decimal:4', 'due_total' => 'decimal:4', 'returned_total' => 'decimal:4', 'cost_total' => 'decimal:4', 'profit_total' => 'decimal:4'];
     }
 
     public function items()
@@ -36,5 +36,15 @@ class Sale extends Model
     public function publicToken()
     {
         return $this->hasOne(PublicInvoiceToken::class);
+    }
+
+    public function paymentAllocations()
+    {
+        return $this->hasMany(CustomerPaymentAllocation::class);
+    }
+
+    public function returns()
+    {
+        return $this->hasMany(SaleReturn::class);
     }
 }

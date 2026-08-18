@@ -23,8 +23,28 @@ class Customer extends Model
         return $this->hasMany(CustomerLedger::class);
     }
 
+    public function payments()
+    {
+        return $this->hasMany(CustomerPayment::class);
+    }
+
+    public function cheques()
+    {
+        return $this->hasMany(Cheque::class);
+    }
+
+    public function returns()
+    {
+        return $this->hasMany(SaleReturn::class);
+    }
+
     public function getBalanceAttribute()
     {
         return (string) ($this->ledger()->latest('id')->value('balance_after') ?? $this->opening_balance);
+    }
+
+    public function getPendingBalanceAttribute(): string
+    {
+        return (string) $this->payments()->where('status', 'pending')->sum('amount');
     }
 }

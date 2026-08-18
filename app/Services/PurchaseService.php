@@ -32,7 +32,8 @@ class PurchaseService
                 'supplier_invoice_no' => $data['supplier_invoice_no'] ?? null, 'reference_no' => $data['reference_no'] ?? null,
                 'purchase_date' => $data['purchase_date'], 'due_date' => $data['due_date'] ?? null, 'status' => 'received',
                 'supplier_total' => Decimal::money($supplierTotal), 'extra_cost_total' => Decimal::money($extraTotal),
-                'paid_total' => 0, 'notes' => $data['notes'] ?? null, 'received_at' => now(),
+                'paid_total' => 0, 'pending_total' => 0, 'due_total' => Decimal::money($supplierTotal), 'returned_total' => 0,
+                'notes' => $data['notes'] ?? null, 'received_at' => now(),
             ]);
 
             foreach ($data['items'] as $line) {
@@ -65,7 +66,7 @@ class PurchaseService
             }
             $this->ledger->supplier(Supplier::findOrFail($data['supplier_id']), 'purchase_invoice', 0, $purchase->supplier_total, $purchase, 'Invoice cost only; extra costs excluded');
 
-            return $purchase->load('items.product','supplier');
+            return $purchase->load('items.product', 'supplier');
         }, 3);
     }
 }

@@ -23,8 +23,28 @@ class Supplier extends Model
         return $this->hasMany(SupplierLedger::class);
     }
 
+    public function payments()
+    {
+        return $this->hasMany(SupplierPayment::class);
+    }
+
+    public function cheques()
+    {
+        return $this->hasMany(Cheque::class);
+    }
+
+    public function returns()
+    {
+        return $this->hasMany(PurchaseReturn::class);
+    }
+
     public function getBalanceAttribute()
     {
         return (string) ($this->ledger()->latest('id')->value('balance_after') ?? $this->opening_balance);
+    }
+
+    public function getPendingBalanceAttribute(): string
+    {
+        return (string) $this->payments()->where('status', 'pending')->sum('amount');
     }
 }

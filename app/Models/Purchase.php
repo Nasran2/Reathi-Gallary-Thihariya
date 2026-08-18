@@ -10,7 +10,7 @@ class Purchase extends Model
 
     protected function casts(): array
     {
-        return ['purchase_date' => 'date', 'due_date' => 'date', 'received_at' => 'datetime', 'supplier_total' => 'decimal:4', 'extra_cost_total' => 'decimal:4', 'paid_total' => 'decimal:4'];
+        return ['purchase_date' => 'date', 'due_date' => 'date', 'received_at' => 'datetime', 'supplier_total' => 'decimal:4', 'extra_cost_total' => 'decimal:4', 'paid_total' => 'decimal:4', 'pending_total' => 'decimal:4', 'due_total' => 'decimal:4', 'returned_total' => 'decimal:4'];
     }
 
     public function items()
@@ -31,5 +31,15 @@ class Purchase extends Model
     public function payments()
     {
         return $this->hasMany(PurchasePayment::class);
+    }
+
+    public function paymentAllocations()
+    {
+        return $this->hasMany(SupplierPaymentAllocation::class);
+    }
+
+    public function returns()
+    {
+        return $this->hasMany(PurchaseReturn::class);
     }
 }

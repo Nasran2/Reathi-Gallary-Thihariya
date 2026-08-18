@@ -18,6 +18,11 @@ class SaleItem extends Model
         return $this->belongsTo(Product::class);
     }
 
+    public function sale()
+    {
+        return $this->belongsTo(Sale::class);
+    }
+
     public function unit()
     {
         return $this->belongsTo(Unit::class);
@@ -26,5 +31,15 @@ class SaleItem extends Model
     public function remnant()
     {
         return $this->belongsTo(Remnant::class);
+    }
+
+    public function returnItems()
+    {
+        return $this->hasMany(SaleReturnItem::class);
+    }
+
+    public function getReturnedQuantityAttribute(): string
+    {
+        return (string) $this->returnItems()->sum('quantity');
     }
 }

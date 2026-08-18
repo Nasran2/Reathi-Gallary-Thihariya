@@ -2,15 +2,18 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Category;
 use App\Models\Customer;
 use App\Models\Expense;
+use App\Models\ExpenseCategory;
 use App\Models\Product;
 use App\Models\Purchase;
 use App\Models\Sale;
+use App\Models\SaleItem;
+use App\Models\SaleReturn;
 use App\Models\Supplier;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Http\Request;
 
 class ReportController extends Controller
 {
@@ -24,14 +27,14 @@ class ReportController extends Controller
         if ($r->get('export') === 'pdf') {
             $pdf = Pdf::loadView('reports.pdf', [
                 'title' => $pdfTitle,
-                'period' => $r->date('from')?->format('d M Y') . ' to ' . $r->date('to')?->format('d M Y'),
-                'content' => view($view . '-table', $data)->render(),
-                'extraCss' => $data['extraCss'] ?? ''
+                'period' => $r->date('from')?->format('d M Y').' to '.$r->date('to')?->format('d M Y'),
+                'content' => view($view.'-table', $data)->render(),
+                'extraCss' => $data['extraCss'] ?? '',
             ])->setPaper('a4', $orientation);
-            
-            return $pdf->download(str_replace(' ', '_', $pdfTitle) . '_' . now()->format('Ymd') . '.pdf');
+
+            return $pdf->download(str_replace(' ', '_', $pdfTitle).'_'.now()->format('Ymd').'.pdf');
         }
-        
+
         return view($view, $data);
     }
 
@@ -39,13 +42,13 @@ class ReportController extends Controller
     {
         $this->authorize('view-reports');
         [$from, $to] = $this->dates($r);
-        
+
         $query = Sale::with('customer')->whereBetween('sold_at', [$from->startOfDay(), $to->endOfDay()]);
-        
+
         if ($r->filled('customer_id')) {
             $query->where('customer_id', $r->customer_id);
         }
-        
+
         $sales = $query->orderBy('sold_at', 'desc')->get();
         $customers = Customer::orderBy('name')->get();
 
@@ -56,13 +59,13 @@ class ReportController extends Controller
     {
         $this->authorize('view-reports');
         [$from, $to] = $this->dates($r);
-        
+
         $query = Purchase::with('supplier')->whereBetween('purchase_date', [$from->startOfDay(), $to->endOfDay()]);
-        
+
         if ($r->filled('supplier_id')) {
             $query->where('supplier_id', $r->supplier_id);
         }
-        
+
         $purchases = $query->orderBy('purchase_date', 'desc')->get();
         $suppliers = Supplier::orderBy('name')->get();
 
@@ -73,15 +76,15 @@ class ReportController extends Controller
     {
         $this->authorize('view-reports');
         [$from, $to] = $this->dates($r);
-        
+
         $query = Expense::with('category')->whereBetween('expense_date', [$from->toDateString(), $to->toDateString()]);
-        
+
         if ($r->filled('category_id')) {
-            $query->where('category_id', $r->category_id);
+            $query->where('expense_category_id', $r->category_id);
         }
-        
+
         $expenses = $query->orderBy('expense_date', 'desc')->get();
-        $categories = \App\Models\Category::orderBy('name')->get();
+        $categories = ExpenseCategory::orderBy('name')->get();
 
         return $this->render($r, 'reports.expenses', compact('expenses', 'categories', 'from', 'to'), 'Expense Report');
     }
@@ -90,13 +93,13 @@ class ReportController extends Controller
     {
         $this->authorize('view-reports');
         [$from, $to] = $this->dates($r);
-        
+
         $query = Sale::with('customer')->where('due_total', '>', 0);
-        
+
         if ($r->filled('customer_id')) {
             $query->where('customer_id', $r->customer_id);
         }
-        
+
         $sales = $query->orderBy('sold_at', 'desc')->get();
         $customers = Customer::orderBy('name')->get();
 
@@ -106,19 +109,21 @@ class ReportController extends Controller
     public function customerDue(Request $r)
     {
         $this->authorize('view-reports');
-        
-        $query = Customer::withSum('sales', 'due_total')->having('sales_sum_due_total', '>', 0);
-        
+
+        $balanceSql = "COALESCE((SELECT balance_after FROM customer_ledger WHERE customer_id = customers.id ORDER BY id DESC LIMIT 1), opening_balance) - COALESCE((SELECT SUM(amount) FROM customer_payments WHERE customer_id = customers.id AND status = 'pending'),0)";
+        $query = Customer::select('customers.*')->selectRaw("CASE WHEN ({$balanceSql}) > 0 THEN ({$balanceSql}) ELSE 0 END AS sales_sum_due_total")->whereRaw("({$balanceSql}) > 0");
+
         if ($r->filled('customer_id')) {
             $query->where('id', $r->customer_id);
         }
-        
+
         $customers_due = $query->orderByDesc('sales_sum_due_total')->get();
         $customers = Customer::orderBy('name')->get();
 
-        // Customer due doesn't need date filters usually as it's a current snapshot, 
+        // Customer due doesn't need date filters usually as it's a current snapshot,
         // but we pass dummy dates to satisfy the filter component if needed.
-        $from = now(); $to = now();
+        $from = now();
+        $to = now();
 
         return $this->render($r, 'reports.customer-due', compact('customers_due', 'customers', 'from', 'to'), 'Customer Due Report');
     }
@@ -135,8 +140,8 @@ class ReportController extends Controller
         $expenses = Expense::whereDate('expense_date', $date->toDateString())->get();
 
         $data = compact('sales', 'purchases', 'expenses', 'date', 'from', 'to');
-        
-        return $this->render($r, 'reports.daily-closing', $data, 'Daily Closing Report - ' . $date->format('Y-m-d'));
+
+        return $this->render($r, 'reports.daily-closing', $data, 'Daily Closing Report - '.$date->format('Y-m-d'));
     }
 
     public function profit(Request $r)
@@ -144,21 +149,27 @@ class ReportController extends Controller
         $this->authorize('view-reports');
         [$from, $to] = $this->dates($r);
         $base = Sale::where('status', 'completed')->whereBetween('sold_at', [$from->startOfDay(), $to->endOfDay()]);
-        
+
         $main = clone $base;
         $mainData = $main->where('sale_type', 'main')->selectRaw('COALESCE(SUM(grand_total),0) sales, COALESCE(SUM(cost_total),0) cogs, COALESCE(SUM(profit_total),0) profit')->first();
-        
+
         $remnant = clone $base;
         $remnantData = $remnant->where('sale_type', 'remnant')->selectRaw('COALESCE(SUM(grand_total),0) sales, COALESCE(SUM(cost_total),0) cogs, COALESCE(SUM(profit_total),0) profit')->first();
-        
+        foreach (['main' => $mainData, 'remnant' => $remnantData] as $saleType => $row) {
+            $returns = SaleReturn::join('sales', 'sales.id', '=', 'sale_returns.sale_id')->where('sales.sale_type', $saleType)->whereBetween('sale_returns.return_date', [$from->toDateString(), $to->toDateString()])->selectRaw('COALESCE(SUM(return_total),0) revenue, COALESCE(SUM(sale_returns.cost_total),0) cost')->first();
+            $row->sales -= $returns->revenue;
+            $row->cogs -= $returns->cost;
+            $row->profit -= ($returns->revenue - $returns->cost);
+        }
+
         $expenses = Expense::whereBetween('expense_date', [$from->toDateString(), $to->toDateString()])->sum('amount');
 
         return $this->render($r, 'reports.profit', [
-            'main' => $mainData, 
-            'remnant' => $remnantData, 
-            'expenses' => $expenses, 
-            'from' => $from, 
-            'to' => $to
+            'main' => $mainData,
+            'remnant' => $remnantData,
+            'expenses' => $expenses,
+            'from' => $from,
+            'to' => $to,
         ], 'Profit & Loss Report');
     }
 
@@ -166,20 +177,20 @@ class ReportController extends Controller
     {
         $this->authorize('view-reports');
         $type = $r->get('type', 'combined');
-        
+
         $query = Product::with(['category', 'baseUnit', 'balances', 'productUnits'])->whereHas('balances');
-        
+
         if ($r->filled('category_id')) {
             $query->where('category_id', $r->category_id);
         }
-        
+
         $rows = $query->get()->map(function ($p) use ($type) {
             $main = $p->balances->where('inventory_type', 'main')->sum('quantity');
             $remnant = $p->balances->where('inventory_type', 'remnant')->sum('quantity');
             $qty = $type === 'main' ? $main : ($type === 'remnant' ? $remnant : $main + $remnant);
             $mainPrice = $p->main_selling_price ?? 0;
             $remnantPrice = $p->remnant_selling_price ?? 0;
-            
+
             if ($type === 'main') {
                 $sellingValue = $main * $mainPrice;
             } elseif ($type === 'remnant') {
@@ -189,15 +200,16 @@ class ReportController extends Controller
             }
 
             return compact('p', 'main', 'remnant', 'qty', 'mainPrice', 'remnantPrice') + [
-                'costValue' => $qty * $p->average_cost, 
-                'sellingValue' => $sellingValue
+                'costValue' => $qty * $p->average_cost,
+                'sellingValue' => $sellingValue,
             ];
-        })->filter(function($row) {
+        })->filter(function ($row) {
             return $row['qty'] > 0;
         });
 
-        $categories = \App\Models\Category::orderBy('name')->get();
-        $from = now(); $to = now();
+        $categories = Category::orderBy('name')->get();
+        $from = now();
+        $to = now();
 
         return $this->render($r, 'reports.valuation', compact('rows', 'type', 'categories', 'from', 'to'), 'Stock Valuation Report');
     }
@@ -206,22 +218,23 @@ class ReportController extends Controller
     {
         $this->authorize('view-reports');
         $days = (int) $r->get('days', 90);
-        
+
         $query = Product::with(['category', 'baseUnit', 'balances', 'productUnits'])
-            ->addSelect(['last_sale_at' => \App\Models\SaleItem::selectRaw('MAX(sales.sold_at)')
+            ->addSelect(['last_sale_at' => SaleItem::selectRaw('MAX(sales.sold_at)')
                 ->join('sales', 'sales.id', '=', 'sale_items.sale_id')
                 ->whereColumn('sale_items.product_id', 'products.id')
-                ->where('sales.status', 'completed')
+                ->where('sales.status', 'completed'),
             ])
-            ->havingRaw('last_sale_at IS NULL OR last_sale_at < ?', [now()->subDays($days)]);
-            
+            ->whereDoesntHave('saleItems.sale', fn ($sale) => $sale->where('status', 'completed')->where('sold_at', '>=', now()->subDays($days)));
+
         if ($r->filled('category_id')) {
             $query->where('products.category_id', $r->category_id);
         }
-        
+
         $products = $query->get();
-        $categories = \App\Models\Category::orderBy('name')->get();
-        $from = now(); $to = now();
+        $categories = Category::orderBy('name')->get();
+        $from = now();
+        $to = now();
 
         return $this->render($r, 'reports.dead-stock', compact('products', 'days', 'categories', 'from', 'to'), 'Dead Stock Report');
     }

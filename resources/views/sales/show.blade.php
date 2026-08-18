@@ -35,6 +35,7 @@
             <button @click="openSmsModal()" class="px-4 py-2 bg-emerald-500 text-white font-bold rounded-lg hover:bg-emerald-600 transition shadow-sm flex items-center gap-2">
                 <i class="ti ti-message-circle"></i> Send SMS
             </button>
+            <a href="{{ route('sales.returns',['sale_id'=>$sale->id]) }}" class="px-4 py-2 bg-amber-100 text-amber-800 font-bold rounded-lg">Return Items</a>
         </div>
     </div>
 
@@ -114,6 +115,9 @@
                         <strong class="font-bold text-lg">Rs. {{ number_format($sale->due_total,2) }}</strong>
                     </div>
                     @endif
+                    <div class="flex justify-between text-emerald-700 bg-emerald-50 p-2 rounded mt-2"><span class="font-semibold">Paid / Cleared</span><strong>Rs. {{ number_format($sale->paid_total,2) }}</strong></div>
+                    @if($sale->pending_total > 0)<div class="flex justify-between text-blue-700 bg-blue-50 p-2 rounded mt-2"><span class="font-semibold">Pending Cheque</span><strong>Rs. {{ number_format($sale->pending_total,2) }}</strong></div>@endif
+                    @if($sale->returned_total > 0)<div class="flex justify-between text-amber-700 bg-amber-50 p-2 rounded mt-2"><span class="font-semibold">Returned</span><strong>Rs. {{ number_format($sale->returned_total,2) }}</strong></div>@endif
                     @can('view-cost')
                     <div class="flex justify-between {{ $sale->profit_total<0?'text-red-600 bg-red-50':'text-emerald-600 bg-emerald-50' }} p-2 rounded mt-2">
                         <span class="font-semibold">Net Profit / Loss</span>

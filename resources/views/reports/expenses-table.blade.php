@@ -12,9 +12,9 @@
         @forelse($expenses as $expense)
             <tr class="border-b border-slate-100 hover:bg-slate-50">
                 <td class="px-6 py-4 whitespace-nowrap">{{ $expense->expense_date }}</td>
-                <td class="px-6 py-4 font-bold text-slate-800">{{ $expense->reference_no ?? 'N/A' }}</td>
+                <td class="px-6 py-4 font-bold text-slate-800">{{ $expense->reference ?? 'N/A' }}</td>
                 <td class="px-6 py-4">{{ $expense->category?->name ?? 'Uncategorized' }}</td>
-                <td class="px-6 py-4 text-xs">{{ $expense->note }}</td>
+                <td class="px-6 py-4 text-xs">{{ $expense->description }}</td>
                 <td class="px-6 py-4 text-right font-semibold text-slate-800">Rs. {{ number_format($expense->amount, 2) }}</td>
             </tr>
         @empty

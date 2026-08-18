@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Models\Customer;
+use App\Models\Supplier;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -20,7 +22,10 @@ class ScreenSmokeTest extends TestCase
             route('inventory.adjust', absolute: false), route('remnants.index', absolute: false), route('remnants.transfer', absolute: false),
             route('purchases.index', absolute: false), route('purchases.create', absolute: false), route('sales.index', absolute: false),
             route('customers.index', absolute: false), route('suppliers.index', absolute: false), route('expenses.index', absolute: false),
-            route('reports.profit', absolute: false), route('reports.valuation', absolute: false), route('reports.dead', absolute: false), route('settings.index', absolute: false),
+            route('customers.show', Customer::first(), absolute: false), route('suppliers.show', Supplier::first(), absolute: false),
+            route('purchases.returns', absolute: false), route('sales.returns', absolute: false), route('transfers.index', absolute: false), route('expenses.categories', absolute: false),
+            route('cheques.dashboard', absolute: false), route('cheques.received', absolute: false), route('cheques.issued', absolute: false), route('cheques.history', absolute: false),
+            route('reports.profit', absolute: false), route('reports.valuation', absolute: false), route('reports.dead', absolute: false), route('reports.expenses', absolute: false), route('reports.customer-due', absolute: false), route('settings.index', absolute: false),
         ] as $url) {
             $this->get($url)->assertOk();
         }

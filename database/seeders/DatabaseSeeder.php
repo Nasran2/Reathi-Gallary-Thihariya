@@ -33,7 +33,7 @@ class DatabaseSeeder extends Seeder
         $walkIn = Customer::firstOrCreate(['is_walk_in' => true], ['name' => 'Walk-in Customer', 'mobile' => null, 'credit_limit' => 0, 'opening_balance' => 0, 'active' => true]);
         $customer = Customer::firstOrCreate(['mobile' => '0771234567'], ['name' => 'Nadeesha Perera', 'whatsapp' => '0771234567', 'credit_limit' => 25000, 'opening_balance' => 0, 'active' => true]);
         $supplier = Supplier::firstOrCreate(['phone' => '0112345678'], ['name' => 'Serendib Textiles', 'company' => 'Serendib Textile Imports', 'opening_balance' => 0, 'active' => true]);
-        foreach ([['Cash', 'cash', false], ['Card', 'card', true], ['Bank Transfer', 'bank_transfer', true], ['Credit / Due', 'credit_due', false]] as $i => $m) {
+        foreach ([['Cash', 'cash', false], ['Card', 'card', true], ['Bank Transfer', 'bank_transfer', true], ['Credit / Due', 'credit_due', false], ['Cheque', 'cheque', true], ['Own Cheque', 'own_cheque', true], ['Customer Cheque / Endorsed', 'endorsed_cheque', true]] as $i => $m) {
             PaymentMethod::firstOrCreate(['code' => $m[1]], ['name' => $m[0], 'requires_reference' => $m[2], 'active' => true, 'sort_order' => $i]);
         }
         foreach (['Rent', 'Electricity', 'Salary', 'Transport', 'Delivery', 'Loading', 'Meals', 'Internet', 'Maintenance', 'Other'] as $name) {

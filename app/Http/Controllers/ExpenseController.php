@@ -21,4 +21,33 @@ class ExpenseController extends Controller
 
         return back()->with('success', 'Expense recorded.');
     }
+
+    public function categories()
+    {
+        return view('expenses.categories', ['categories' => ExpenseCategory::withCount('expenses')->orderBy('name')->get()]);
+    }
+
+    public function storeCategory(Request $r)
+    {
+        ExpenseCategory::create($r->validate(['name' => 'required|max:120|unique:expense_categories,name']) + ['active' => true]);
+
+        return back()->with('success', 'Expense category added.');
+    }
+
+    public function updateCategory(Request $r, ExpenseCategory $category)
+    {
+        $category->update($r->validate(['name' => 'required|max:120|unique:expense_categories,name,'.$category->id, 'active' => 'required|boolean']));
+
+        return back()->with('success', 'Expense category updated.');
+    }
+
+    public function destroyCategory(ExpenseCategory $category)
+    {
+        if ($category->expenses()->exists()) {
+            return back()->withErrors(['category' => 'Used categories cannot be deleted. Deactivate this category instead.']);
+        }
+        $category->delete();
+
+        return back()->with('success', 'Expense category deleted.');
+    }
 }

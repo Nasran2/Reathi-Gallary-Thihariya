@@ -12,11 +12,16 @@ class CustomerLedger extends Model
 
     protected function casts(): array
     {
-        return ['debit' => 'decimal:4', 'credit' => 'decimal:4', 'balance_after' => 'decimal:4', 'occurred_at' => 'datetime'];
+        return ['debit' => 'decimal:4', 'credit' => 'decimal:4', 'pending' => 'decimal:4', 'balance_after' => 'decimal:4', 'occurred_at' => 'datetime'];
     }
 
     public function reference()
     {
         return $this->morphTo();
+    }
+
+    public function customer()
+    {
+        return $this->belongsTo(Customer::class);
     }
 }

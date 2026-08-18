@@ -4,6 +4,8 @@ namespace App\Services;
 
 use App\Models\BusinessSetting;
 use App\Models\Customer;
+use App\Models\Expense;
+use App\Models\ExpenseCategory;
 use App\Models\PaymentMethod;
 use App\Models\Product;
 use App\Models\PublicInvoiceToken;
@@ -39,8 +41,8 @@ class SaleService
                 'uuid' => Str::uuid(), 'invoice_no' => ($type === 'remnant' ? 'RPOS' : 'POS').'-'.now()->format('ymdHis').'-'.random_int(10, 99),
                 'idempotency_key' => $data['idempotency_key'], 'sale_type' => $type, 'store_id' => $data['store_id'],
                 'customer_id' => $data['customer_id'] ?? null, 'user_id' => $userId, 'status' => 'completed',
-                'subtotal' => 0, 'discount_total' => 0, 'tax_total' => 0, 'grand_total' => 0, 'paid_total' => 0, 'due_total' => 0, 'cost_total' => 0, 'profit_total' => 0,
-                'notes' => trim(($data['notes'] ?? '') . "\n" . ($data['staff_note'] ?? '')), 'sold_at' => now(),
+                'subtotal' => 0, 'discount_total' => 0, 'tax_total' => 0, 'grand_total' => 0, 'paid_total' => 0, 'pending_total' => 0, 'due_total' => 0, 'returned_total' => 0, 'cost_total' => 0, 'profit_total' => 0,
+                'notes' => trim(($data['notes'] ?? '')."\n".($data['staff_note'] ?? '')), 'sold_at' => now(),
             ]);
             $subtotal = BigDecimal::zero();
             $discount = BigDecimal::zero();
@@ -109,29 +111,30 @@ class SaleService
                 if ($method->requires_reference && empty($payment['reference'])) {
                     throw ValidationException::withMessages(['payments' => 'A payment reference is required.']);
                 }
+                if (in_array($method->code, ['cheque', 'own_cheque', 'endorsed_cheque'], true)) {
+                    throw ValidationException::withMessages(['payments' => 'Cheque payments need cheque number, bank and date. Complete the sale as due, then use Pay Due on the customer profile.']);
+                }
                 $feeAmount = BigDecimal::zero();
                 $feePercent = Decimal::of($method->bank_charge_percentage ?? 0);
                 if ($feePercent->isGreaterThan(0)) {
                     $feeAmount = $amount->multipliedBy($feePercent)->dividedBy(Decimal::of(100), 4, RoundingMode::HalfUp);
                     $profit = $profit->minus($feeAmount);
-                    
+
                     // Save the fee as an expense
-                    $expenseCategory = \App\Models\Category::firstOrCreate(
-                        ['name' => 'Bank Charges', 'type' => 'expense'],
-                        ['slug' => 'bank-charges', 'active' => true]
-                    );
-                    
-                    \App\Models\Expense::create([
-                        'uuid' => Str::uuid(),
+                    $expenseCategory = ExpenseCategory::firstOrCreate(['name' => 'Bank Charges'], ['active' => true]);
+
+                    Expense::create([
                         'expense_date' => now(),
-                        'category_id' => $expenseCategory->id,
+                        'expense_category_id' => $expenseCategory->id,
+                        'payment_method_id' => $method->id,
+                        'store_id' => $data['store_id'],
+                        'user_id' => $userId,
                         'amount' => $feeAmount,
-                        'reference_no' => $sale->invoice_no,
-                        'note' => $method->name . ' Fee for ' . $sale->invoice_no,
-                        'created_by' => $userId,
+                        'reference' => $sale->invoice_no,
+                        'description' => $method->name.' fee for '.$sale->invoice_no,
                     ]);
                 }
-                
+
                 $sale->payments()->create(['payment_method_id' => $method->id, 'amount' => $amount, 'bank_fee' => $feeAmount, 'reference' => $payment['reference'] ?? null]);
                 if ($method->code !== 'credit_due') {
                     $paid = $paid->plus($amount);
@@ -145,8 +148,14 @@ class SaleService
                 throw ValidationException::withMessages(['customer_id' => 'Select a customer for a credit/due sale.']);
             }
             $sale->update(['subtotal' => $subtotal, 'discount_total' => $discount, 'tax_total' => $tax, 'grand_total' => $grand, 'paid_total' => $paid, 'due_total' => $due, 'cost_total' => $costTotal, 'profit_total' => $profit]);
-            if ($due->isGreaterThan(0)) {
-                $this->ledger->customer(Customer::findOrFail($data['customer_id']), 'invoice', $due, 0, $sale, $sale->invoice_no);
+            if (! empty($data['customer_id'])) {
+                $customer = Customer::findOrFail($data['customer_id']);
+                $this->ledger->customer($customer, 'invoice', $grand, 0, $sale, $sale->invoice_no, 0, $sale->sold_at);
+                foreach ($sale->payments()->with('method')->get() as $payment) {
+                    if ($payment->method->code !== 'credit_due') {
+                        $this->ledger->customer($customer, 'payment', 0, $payment->amount, $payment, $payment->reference ?? $payment->method->name, 0, $sale->sold_at);
+                    }
+                }
             }
             PublicInvoiceToken::create(['sale_id' => $sale->id, 'token' => Str::random(64), 'expires_at' => $this->invoiceExpiry()]);
 
