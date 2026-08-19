@@ -43,13 +43,16 @@ else{$catalog=$items->map(fn($r)=>['key'=>'r'.$r->id,'product_id'=>$r->product_i
                 @endif
             </div>
             
-            <div class="grid grid-cols-2 gap-4">
+            @php $smsEnabled = filter_var(\App\Models\BusinessSetting::read('sms_enabled', false), FILTER_VALIDATE_BOOL); @endphp
+            <div class="grid {{ $smsEnabled ? 'grid-cols-2' : 'grid-cols-1' }} gap-4">
                 <a href="{{ route('sales.pdf', $saleSuccess->id) }}" target="_blank" class="flex flex-col items-center justify-center p-4 bg-indigo-50 hover:bg-indigo-100 border border-indigo-100 rounded-xl text-indigo-700 transition font-bold gap-2">
                     <i class="ti ti-file-download text-3xl"></i> Download PDF Invoice
                 </a>
+                @if($smsEnabled)
                 <button type="button" @click="openSmsModal()" class="flex flex-col items-center justify-center p-4 bg-emerald-50 hover:bg-emerald-100 border border-emerald-100 rounded-xl text-emerald-700 transition font-bold gap-2">
                     <i class="ti ti-message-circle text-3xl"></i> Send SMS Receipt
                 </button>
+                @endif
             </div>
             
             <div class="mt-6 pt-6 border-t border-slate-100 text-center">
