@@ -18,6 +18,6 @@ class UnitPreset extends Model
 
     public function conversions()
     {
-        return $this->hasMany(UnitPresetConversion::class);
+        return $this->hasMany(UnitPresetConversion::class)->orderBy('id');
     }
 }

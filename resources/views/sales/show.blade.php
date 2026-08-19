@@ -148,7 +148,7 @@
                 </div>
                 <h3 class="text-xl font-bold text-slate-800 mb-2">SMS Sent Successfully!</h3>
                 <p class="text-slate-500 text-sm mb-6">The receipt link has been sent to the customer.</p>
-                <button type="button" @click="smsModal = false; smsSuccess = false;" class="px-6 py-2.5 font-bold text-white bg-slate-800 rounded-xl hover:bg-slate-900 w-full">Done</button>
+                <button type="button" @click="closeSmsSuccess()" class="px-6 py-2.5 font-bold text-white bg-slate-800 rounded-xl hover:bg-slate-900 w-full">Done</button>
             </div>
             
             <div class="flex justify-between items-center mb-5">
@@ -237,6 +237,11 @@ function saleShow() {
         
         openSmsModal() {
             this.smsModal = true;
+            this.smsSuccess = false;
+        },
+
+        closeSmsSuccess() {
+            this.smsModal = false;
             this.smsSuccess = false;
         },
         

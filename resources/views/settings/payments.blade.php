@@ -108,29 +108,29 @@
                 <h3 class="text-lg font-bold text-slate-800">Edit Payment Method</h3>
                 <button @click="editMethod = null" class="text-slate-400 hover:text-slate-600">✕</button>
             </div>
-            <form :action="`{{ url('settings/payment-methods') }}/${editMethod?.id}`" method="post" class="space-y-4">
+            <form :action="editMethod ? '{{ url('settings/payment-methods') }}/' + editMethod.id : ''" method="post" class="space-y-4">
                 @csrf 
                 @method('PUT')
                 <div>
                     <label class="block text-sm font-semibold text-slate-700 mb-1">Name</label>
-                    <input class="w-full rounded-lg border-slate-200 py-2" name="name" :value="editMethod?.name" required>
+                    <input class="w-full rounded-lg border-slate-200 py-2" name="name" :value="editMethod ? editMethod.name : ''" required>
                 </div>
                 <div>
                     <label class="block text-sm font-semibold text-slate-700 mb-1">Code</label>
-                    <input class="w-full rounded-lg border-slate-200 py-2 bg-slate-50 text-slate-500" name="code" :value="editMethod?.code" readonly>
+                    <input class="w-full rounded-lg border-slate-200 py-2 bg-slate-50 text-slate-500" name="code" :value="editMethod ? editMethod.code : ''" readonly>
                 </div>
                 <div>
                     <label class="block text-sm font-semibold text-slate-700 mb-1">Bank Charge (%)</label>
-                    <input type="number" step="0.01" class="w-full rounded-lg border-slate-200 py-2" name="bank_charge_percentage" :value="editMethod?.bank_charge_percentage">
+                    <input type="number" step="0.01" class="w-full rounded-lg border-slate-200 py-2" name="bank_charge_percentage" :value="editMethod ? editMethod.bank_charge_percentage : 0">
                 </div>
                 <label class="flex items-center gap-2 normal-case py-1 cursor-pointer">
                     <input type="hidden" name="requires_reference" value="0">
-                    <input type="checkbox" name="requires_reference" value="1" :checked="editMethod?.requires_reference" class="rounded text-blue-600 focus:ring-blue-500"> 
+                    <input type="checkbox" name="requires_reference" value="1" :checked="editMethod ? editMethod.requires_reference : false" class="rounded text-blue-600 focus:ring-blue-500">
                     <span class="text-sm font-semibold text-slate-700">Require reference</span>
                 </label>
                 <label class="flex items-center gap-2 normal-case py-1 cursor-pointer">
                     <input type="hidden" name="active" value="0">
-                    <input type="checkbox" name="active" value="1" :checked="editMethod?.active" class="rounded text-blue-600 focus:ring-blue-500"> 
+                    <input type="checkbox" name="active" value="1" :checked="editMethod ? editMethod.active : false" class="rounded text-blue-600 focus:ring-blue-500">
                     <span class="text-sm font-semibold text-slate-700">Active</span>
                 </label>
                 <div class="flex gap-3 justify-end pt-4 mt-2 border-t border-slate-100">
@@ -149,7 +149,7 @@
             </div>
             <h3 class="text-lg font-bold text-slate-800 mb-2">Delete Payment Method?</h3>
             <p class="text-slate-500 text-sm mb-6">Are you sure you want to delete this payment method? This action cannot be undone.</p>
-            <form :action="`{{ url('settings/payment-methods') }}/${deleteMethod}`" method="post" class="flex gap-3 justify-center">
+            <form :action="'{{ url('settings/payment-methods') }}/' + deleteMethod" method="post" class="flex gap-3 justify-center">
                 @csrf 
                 @method('DELETE')
                 <button type="button" @click="deleteMethod = null" class="px-4 py-2 font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg">Cancel</button>

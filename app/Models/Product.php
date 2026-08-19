@@ -40,7 +40,7 @@ class Product extends Model
 
     public function units()
     {
-        return $this->belongsToMany(Unit::class, 'product_units')->using(ProductUnit::class)->withPivot(['id', 'conversion_rate', 'main_selling_price', 'remnant_selling_price', 'can_purchase', 'can_sell'])->withTimestamps();
+        return $this->belongsToMany(Unit::class, 'product_units')->using(ProductUnit::class)->withPivot(['id', 'base_quantity', 'unit_quantity', 'conversion_rate', 'can_purchase', 'can_sell'])->withTimestamps();
     }
 
     public function productUnits()

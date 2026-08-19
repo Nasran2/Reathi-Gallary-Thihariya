@@ -10,7 +10,15 @@ class UnitPresetConversion extends Model
     use HasFactory;
 
     public $timestamps = false;
-    protected $fillable = ['unit_id', 'unit_quantity'];
+    protected $fillable = ['unit_id', 'base_quantity', 'unit_quantity'];
+
+    protected function casts(): array
+    {
+        return [
+            'base_quantity' => 'decimal:8',
+            'unit_quantity' => 'decimal:8',
+        ];
+    }
 
     public function unit()
     {

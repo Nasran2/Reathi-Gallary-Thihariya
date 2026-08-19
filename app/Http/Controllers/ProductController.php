@@ -6,8 +6,11 @@ use App\Models\Category;
 use App\Models\Product;
 use App\Models\Supplier;
 use App\Models\Unit;
+use App\Models\UnitPreset;
+use App\Support\Decimal;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class ProductController extends Controller
 {
@@ -20,7 +23,7 @@ class ProductController extends Controller
 
     public function create()
     {
-        return view('products.form', ['product' => new Product, 'categories' => Category::where('active', 1)->get(), 'brands' => \App\Models\Brand::where('active', 1)->get(), 'units' => Unit::where('active', 1)->get(), 'suppliers' => Supplier::where('active', 1)->get()]);
+        return view('products.form', $this->formData(new Product));
     }
 
     public function store(Request $r)
@@ -28,13 +31,10 @@ class ProductController extends Controller
         $this->authorize('manage-products');
         $data = $this->validated($r);
         DB::transaction(function () use ($data) {
-            $units = $data['units'];
+            $units = $data['units'] ?? [];
             unset($data['units']);
             $product = Product::create($data);
-            foreach ($units as $u) {
-                $u['conversion_rate'] = $u['base_quantity'] / $u['unit_quantity'];
-                $product->productUnits()->create($u);
-            }
+            $this->syncUnits($product, $units);
         });
 
         return redirect()->route('products.index')->with('success', 'Product created.');
@@ -42,7 +42,9 @@ class ProductController extends Controller
 
     public function edit(Product $product)
     {
-        return view('products.form', compact('product') + ['categories' => Category::where('active', 1)->get(), 'brands' => \App\Models\Brand::where('active', 1)->get(), 'units' => Unit::where('active', 1)->get(), 'suppliers' => Supplier::where('active', 1)->get()]);
+        $product->load('productUnits');
+
+        return view('products.form', $this->formData($product));
     }
 
     public function update(Request $r, Product $product)
@@ -50,14 +52,10 @@ class ProductController extends Controller
         $this->authorize('manage-products');
         $data = $this->validated($r, $product);
         DB::transaction(function () use ($data, $product) {
-            $units = $data['units'];
+            $units = $data['units'] ?? [];
             unset($data['units']);
             $product->update($data);
-            $product->productUnits()->delete();
-            foreach ($units as $u) {
-                $u['conversion_rate'] = $u['base_quantity'] / $u['unit_quantity'];
-                $product->productUnits()->create($u);
-            }
+            $this->syncUnits($product, $units);
         });
 
         return redirect()->route('products.index')->with('success', 'Product updated.');
@@ -112,6 +110,52 @@ class ProductController extends Controller
 
     private function validated(Request $r, ?Product $p = null)
     {
-        return $r->validate(['name' => 'required|max:150', 'sku' => 'required|max:80|unique:products,sku,'.($p?->id ?? 'NULL'), 'barcode' => 'nullable|max:80|unique:products,barcode,'.($p?->id ?? 'NULL'), 'category_id' => 'nullable|exists:categories,id', 'base_unit_id' => 'required|exists:units,id', 'default_purchase_unit_id' => 'nullable|exists:units,id', 'default_selling_unit_id' => 'nullable|exists:units,id', 'default_supplier_id' => 'nullable|exists:suppliers,id', 'brand_id' => 'nullable|exists:brands,id', 'fabric_type' => 'nullable|max:100', 'material' => 'nullable|max:100', 'colour' => 'nullable|max:100', 'pattern' => 'nullable|max:100', 'width' => 'nullable|max:100', 'description' => 'nullable', 'average_cost' => 'required|numeric|min:0', 'main_selling_price' => 'required|numeric|min:0', 'remnant_selling_price' => 'required|numeric|min:0', 'minimum_stock' => 'required|numeric|min:0', 'reorder_level' => 'required|numeric|min:0', 'tax_rate' => 'nullable|numeric|min:0', 'track_rolls' => 'boolean', 'active' => 'boolean', 'units' => 'required|array|min:1', 'units.*.unit_id' => 'required|distinct|exists:units,id', 'units.*.base_quantity' => 'required|numeric|gt:0', 'units.*.unit_quantity' => 'required|numeric|gt:0', 'units.*.can_purchase' => 'boolean', 'units.*.can_sell' => 'boolean']);
+        $data = $r->validate(['name' => 'required|max:150', 'sku' => 'required|max:80|unique:products,sku,'.($p?->id ?? 'NULL'), 'barcode' => 'nullable|max:80|unique:products,barcode,'.($p?->id ?? 'NULL'), 'category_id' => 'nullable|exists:categories,id', 'base_unit_id' => 'required|exists:units,id', 'default_purchase_unit_id' => 'nullable|exists:units,id', 'default_selling_unit_id' => 'nullable|exists:units,id', 'default_supplier_id' => 'nullable|exists:suppliers,id', 'brand_id' => 'nullable|exists:brands,id', 'fabric_type' => 'nullable|max:100', 'material' => 'nullable|max:100', 'colour' => 'nullable|max:100', 'pattern' => 'nullable|max:100', 'width' => 'nullable|max:100', 'description' => 'nullable', 'average_cost' => 'required|numeric|min:0', 'main_selling_price' => 'required|numeric|min:0', 'remnant_selling_price' => 'required|numeric|min:0', 'minimum_stock' => 'required|numeric|min:0', 'reorder_level' => 'required|numeric|min:0', 'tax_rate' => 'nullable|numeric|min:0', 'track_rolls' => 'boolean', 'active' => 'boolean', 'units' => 'nullable|array', 'units.*.unit_id' => 'required|distinct|exists:units,id', 'units.*.base_quantity' => 'required|numeric|gt:0', 'units.*.unit_quantity' => 'required|numeric|gt:0', 'units.*.can_purchase' => 'boolean', 'units.*.can_sell' => 'boolean']);
+
+        foreach ($data['units'] ?? [] as $index => $unit) {
+            if ((int) $unit['unit_id'] === (int) $data['base_unit_id']) {
+                throw ValidationException::withMessages([
+                    "units.$index.unit_id" => 'Additional units must be different from the base stock unit.',
+                ]);
+            }
+        }
+
+        return $data;
+    }
+
+    private function formData(Product $product): array
+    {
+        return [
+            'product' => $product,
+            'categories' => Category::where('active', true)->orderBy('name')->get(),
+            'brands' => \App\Models\Brand::where('active', true)->orderBy('name')->get(),
+            'units' => Unit::where('active', true)->orderBy('name')->get(),
+            'suppliers' => Supplier::where('active', true)->orderBy('name')->get(),
+            'unitPresets' => UnitPreset::with('conversions')->orderBy('name')->get(),
+        ];
+    }
+
+    private function syncUnits(Product $product, array $additionalUnits): void
+    {
+        $product->productUnits()->delete();
+        $product->productUnits()->create([
+            'unit_id' => $product->base_unit_id,
+            'base_quantity' => 1,
+            'unit_quantity' => 1,
+            'conversion_rate' => 1,
+            'can_purchase' => true,
+            'can_sell' => true,
+        ]);
+
+        foreach ($additionalUnits as $unit) {
+            $product->productUnits()->create([
+                'unit_id' => $unit['unit_id'],
+                'base_quantity' => $unit['base_quantity'],
+                'unit_quantity' => $unit['unit_quantity'],
+                'conversion_rate' => Decimal::div($unit['base_quantity'], $unit['unit_quantity'], 8),
+                'can_purchase' => $unit['can_purchase'] ?? true,
+                'can_sell' => $unit['can_sell'] ?? true,
+            ]);
+        }
     }
 }

@@ -15,12 +15,15 @@ use App\Models\User;
 use App\Services\InventoryService;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
+use Spatie\Permission\Models\Role;
 
 class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        $admin = User::updateOrCreate(['email' => 'admin@reathi.test'], ['username' => 'admin', 'name' => 'Reathi Administrator', 'password' => Hash::make('password'), 'role' => 'super_admin', 'active' => true]);
+        $admin = User::updateOrCreate(['email' => 'admin@reathi.test'], ['username' => 'admin', 'name' => 'Reathi Administrator', 'password' => Hash::make('password'), 'active' => true]);
+        $superAdminRole = Role::firstOrCreate(['name' => 'super_admin', 'guard_name' => 'web']);
+        $admin->syncRoles([$superAdminRole]);
         $store = Store::firstOrCreate(['code' => 'MAIN'], ['name' => 'Main Store', 'address' => 'Colombo, Sri Lanka', 'is_default' => true, 'active' => true]);
         $meter = Unit::firstOrCreate(['symbol' => 'm'], ['name' => 'Meter', 'allows_decimal' => true]);
         $yard = Unit::firstOrCreate(['symbol' => 'yd'], ['name' => 'Yard', 'allows_decimal' => true]);
@@ -52,7 +55,13 @@ class DatabaseSeeder extends Seeder
         foreach ($products as $data) {
             $p = Product::firstOrCreate(['sku' => $data['sku']], ['name' => $data['name'], 'category_id' => $data['category']->id, 'base_unit_id' => $data['base']->id, 'default_purchase_unit_id' => $data['base']->id, 'default_selling_unit_id' => $data['base']->id, 'default_supplier_id' => $supplier->id, 'average_cost' => $data['avg'], 'main_selling_price' => $data['main_price'], 'remnant_selling_price' => $data['remnant_price'], 'minimum_stock' => 5, 'reorder_level' => 10, 'active' => true] + $data['attrs']);
             foreach ($data['units'] as [$unit,$rate]) {
-                $p->productUnits()->updateOrCreate(['unit_id' => $unit->id], ['conversion_rate' => $rate, 'can_purchase' => true, 'can_sell' => true]);
+                $p->productUnits()->updateOrCreate(['unit_id' => $unit->id], [
+                    'base_quantity' => $rate < 1 ? 1 : $rate,
+                    'unit_quantity' => $rate < 1 ? round(1 / $rate, 8) : 1,
+                    'conversion_rate' => $rate,
+                    'can_purchase' => true,
+                    'can_sell' => true,
+                ]);
             }
             if (! $p->balances()->where(['store_id' => $store->id, 'inventory_type' => 'main'])->exists()) {
                 $inventory->move($p, $store->id, 'main', 'opening_stock', $data['stock'], 0, $data['avg'], null, $admin->id, 'Demo opening stock');

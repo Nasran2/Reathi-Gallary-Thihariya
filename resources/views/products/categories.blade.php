@@ -72,15 +72,15 @@
                 <h3 class="text-lg font-bold text-slate-800">Edit Category</h3>
                 <button @click="editCategory = null" class="text-slate-400 hover:text-slate-600">✕</button>
             </div>
-            <form :action="`{{ url('settings/categories') }}/${editCategory?.id}`" method="post" class="space-y-4">
+            <form :action="editCategory ? '{{ url('settings/categories') }}/' + editCategory.id : ''" method="post" class="space-y-4">
                 @csrf @method('PUT')
                 <div>
                     <label class="block text-sm font-semibold text-slate-700 mb-1">Name</label>
-                    <input class="w-full rounded-lg border-slate-200 py-2" name="name" :value="editCategory?.name" required>
+                    <input class="w-full rounded-lg border-slate-200 py-2" name="name" :value="editCategory ? editCategory.name : ''" required>
                 </div>
                 <div>
                     <label class="block text-sm font-semibold text-slate-700 mb-1">Parent Category</label>
-                    <select class="w-full rounded-lg border-slate-200 py-2" name="parent_id" :value="editCategory?.parent_id">
+                    <select class="w-full rounded-lg border-slate-200 py-2" name="parent_id" :value="editCategory ? editCategory.parent_id : ''">
                         <option value="">None</option>
                         @foreach($categories as $c)
                         <option value="{{ $c->id }}">{{ $c->name }}</option>
@@ -100,7 +100,7 @@
         <div @click.away="deleteCategory = null" class="w-full max-w-sm rounded-2xl bg-white shadow-xl overflow-hidden p-6 text-center">
             <h3 class="text-lg font-bold text-slate-800 mb-2">Delete Category?</h3>
             <p class="text-slate-500 text-sm mb-6">This action cannot be undone.</p>
-            <form :action="`{{ url('settings/categories') }}/${deleteCategory}`" method="post" class="flex gap-3 justify-center">
+            <form :action="'{{ url('settings/categories') }}/' + deleteCategory" method="post" class="flex gap-3 justify-center">
                 @csrf @method('DELETE')
                 <button type="button" @click="deleteCategory = null" class="px-4 py-2 font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg">Cancel</button>
                 <button class="px-5 py-2 font-semibold text-white bg-red-600 rounded-lg shadow-sm hover:bg-red-700">Delete</button>
