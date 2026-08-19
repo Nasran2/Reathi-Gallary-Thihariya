@@ -11,6 +11,7 @@ use Brick\Math\BigDecimal;
 use Brick\Math\RoundingMode;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class PurchaseService
 {
@@ -67,6 +68,26 @@ class PurchaseService
             $this->ledger->supplier(Supplier::findOrFail($data['supplier_id']), 'purchase_invoice', 0, $purchase->supplier_total, $purchase, 'Invoice cost only; extra costs excluded');
 
             return $purchase->load('items.product', 'supplier');
+        }, 3);
+    }
+
+    public function delete(Purchase $purchase): void
+    {
+        DB::transaction(function () use ($purchase) {
+            if (DB::table('supplier_payment_allocations')->where('purchase_id', $purchase->id)->exists()) {
+                throw ValidationException::withMessages(['purchase' => 'Cannot delete purchase because it has payments allocated to it. Please cancel the payments first.']);
+            }
+            if ($purchase->status === 'received') {
+                foreach ($purchase->items as $item) {
+                    $product = Product::lockForUpdate()->findOrFail($item->product_id);
+                    $this->inventory->move($product, $purchase->store_id, 'main', 'purchase_reversal', 0, $item->base_quantity, $item->landed_unit_cost, $item, request()->user()?->id, "Reversed {$purchase->purchase_no}");
+                    if ($item->previous_average_cost > 0) {
+                        $product->update(['average_cost' => $item->previous_average_cost]);
+                    }
+                }
+                $this->ledger->supplier(Supplier::findOrFail($purchase->supplier_id), 'purchase_reversal', $purchase->supplier_total, 0, $purchase, 'Reversal of purchase');
+            }
+            $purchase->delete();
         }, 3);
     }
 }

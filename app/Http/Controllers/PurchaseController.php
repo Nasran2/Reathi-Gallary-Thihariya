@@ -88,4 +88,17 @@ class PurchaseController extends Controller
     {
         return view('purchases.show', ['purchase' => $purchase->load('supplier', 'store', 'items.product', 'items.unit')]);
     }
+
+    public function destroy(Purchase $purchase, PurchaseService $service)
+    {
+        $this->authorize('manage-purchases');
+        try {
+            $service->delete($purchase);
+            return redirect()->route('purchases.index')->with('success', 'Purchase deleted and stock reverted.');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return redirect()->route('purchases.index')->with('error', $e->getMessage());
+        } catch (\Exception $e) {
+            return redirect()->route('purchases.index')->with('error', 'Could not delete purchase: ' . $e->getMessage());
+        }
+    }
 }

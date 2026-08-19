@@ -102,17 +102,25 @@ class SaleService
             }
             $grand = $subtotal->minus($discount)->plus($tax);
             $paid = BigDecimal::zero();
+            $chequePayments = [];
             foreach ($data['payments'] ?? [] as $payment) {
                 $method = PaymentMethod::findOrFail($payment['payment_method_id']);
                 $amount = Decimal::of($payment['amount']);
                 if ($amount->isLessThanOrEqualTo(0)) {
                     continue;
                 }
-                if ($method->requires_reference && empty($payment['reference'])) {
+                if ($method->requires_reference && empty($payment['reference']) && !in_array($method->code, ['cheque', 'own_cheque', 'endorsed_cheque'], true)) {
                     throw ValidationException::withMessages(['payments' => 'A payment reference is required.']);
                 }
                 if (in_array($method->code, ['cheque', 'own_cheque', 'endorsed_cheque'], true)) {
-                    throw ValidationException::withMessages(['payments' => 'Cheque payments need cheque number, bank and date. Complete the sale as due, then use Pay Due on the customer profile.']);
+                    if (empty($data['customer_id'])) {
+                        throw ValidationException::withMessages(['customer_id' => 'Select a customer for cheque payments.']);
+                    }
+                    if (empty($payment['cheque_number']) || empty($payment['bank']) || empty($payment['cheque_date'])) {
+                        throw ValidationException::withMessages(['payments' => 'Cheque payments require cheque number, bank, and date.']);
+                    }
+                    $chequePayments[] = $payment;
+                    continue;
                 }
                 $feeAmount = BigDecimal::zero();
                 $feePercent = Decimal::of($method->bank_charge_percentage ?? 0);
@@ -157,6 +165,21 @@ class SaleService
                     }
                 }
             }
+
+            foreach ($chequePayments as $payment) {
+                app(\App\Services\ChequeService::class)->receive([
+                    'cheque_number' => $payment['cheque_number'],
+                    'bank' => $payment['bank'],
+                    'cheque_date' => $payment['cheque_date'],
+                    'received_date' => $sale->sold_at->toDateString(),
+                    'amount' => $payment['amount'],
+                    'customer_id' => $data['customer_id'],
+                    'allocation_mode' => 'manual',
+                    'allocations' => [['sale_id' => $sale->id, 'amount' => $payment['amount']]],
+                    'notes' => 'Received at POS Checkout',
+                ], $userId);
+            }
+
             PublicInvoiceToken::create(['sale_id' => $sale->id, 'token' => Str::random(64), 'expires_at' => $this->invoiceExpiry()]);
 
             return $sale->load('items.product', 'items.unit', 'payments.method', 'customer', 'publicToken');

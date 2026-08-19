@@ -33,12 +33,12 @@ Route::middleware('auth')->group(function () {
     Route::get('/pos/main', [PosController::class, 'index'])->defaults('type', 'main')->name('pos.main');
     Route::get('/pos/remnant', [PosController::class, 'index'])->defaults('type', 'remnant')->name('pos.remnant');
     Route::post('/pos/checkout', [PosController::class, 'checkout'])->name('pos.checkout');
-    Route::resource('products', ProductController::class)->except(['destroy']);
+    Route::resource('products', ProductController::class);
     Route::get('/purchases/returns', [ReturnController::class, 'purchases'])->name('purchases.returns');
     Route::post('/purchases/returns', [ReturnController::class, 'storePurchase'])->name('purchases.returns.store');
     Route::get('/sales/returns', [ReturnController::class, 'sales'])->name('sales.returns');
     Route::post('/sales/returns', [ReturnController::class, 'storeSale'])->name('sales.returns.store');
-    Route::resource('purchases', PurchaseController::class)->only(['index', 'create', 'store', 'show']);
+    Route::resource('purchases', PurchaseController::class)->only(['index', 'create', 'store', 'show', 'destroy']);
     Route::resource('sales', SaleController::class)->only(['index', 'show']);
     Route::get('/sales/{sale}/print', [SaleController::class, 'print'])->name('sales.print');
     Route::get('/sales/{sale}/pdf', [SaleController::class, 'pdf'])->name('sales.pdf');
