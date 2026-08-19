@@ -11,6 +11,7 @@ $nav = [
         ['Products List', 'products.index'],
         ['Categories', 'categories.index'],
         ['Units', 'units.index'],
+        ['Multiple units', 'unit-presets.index'],
         ['Brands', 'brands.index'],
     ], 'tabler-box'],
     ['Purchase', [

@@ -39,6 +39,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/sales/returns', [ReturnController::class, 'sales'])->name('sales.returns');
     Route::post('/sales/returns', [ReturnController::class, 'storeSale'])->name('sales.returns.store');
     Route::resource('purchases', PurchaseController::class)->only(['index', 'create', 'store', 'show', 'destroy']);
+    Route::resource('brands', \App\Http\Controllers\BrandController::class)->except(['show']);
+    Route::resource('unit-presets', \App\Http\Controllers\UnitPresetController::class)->except(['show']);
     Route::resource('sales', SaleController::class)->only(['index', 'show']);
     Route::get('/sales/{sale}/print', [SaleController::class, 'print'])->name('sales.print');
     Route::get('/sales/{sale}/pdf', [SaleController::class, 'pdf'])->name('sales.pdf');

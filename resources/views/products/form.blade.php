@@ -95,13 +95,30 @@ foreach($existing as $u) {
 <input type="hidden" name="units[0][can_purchase]" value="1">
 <input type="hidden" name="units[0][can_sell]" value="1">
 
-<section class="card mt-5 overflow-hidden" x-data="{ baseName: '' }" @base-unit-changed.window="baseName = $refs.baseUnitSelect?.options[$refs.baseUnitSelect.selectedIndex]?.text" x-init="setTimeout(() => $dispatch('base-unit-changed'), 100)">
+<section class="card mt-5 overflow-hidden" x-data="{ baseName: '', presets: @json($unitPresets ?? []), applyPreset(presetId) {
+    if(!presetId) return;
+    const preset = this.presets.find(p => p.id == presetId);
+    if(preset && preset.conversions) {
+        this.rows = preset.conversions.map(c => ({
+            unit_id: c.unit_id,
+            unit_quantity: c.unit_quantity
+        }));
+    }
+} }" @base-unit-changed.window="baseName = $refs.baseUnitSelect?.options[$refs.baseUnitSelect.selectedIndex]?.text" x-init="setTimeout(() => $dispatch('base-unit-changed'), 100)">
     <div class="flex items-center justify-between p-6">
         <div>
             <h2 class="font-serif text-xl text-ink">Additional units & conversions</h2>
             <p class="text-sm text-slate-500">Example: 1 Meter = 1.09361 Yard</p>
         </div>
-        <button type="button" class="btn-soft" @click="rows.push({unit_id:'',unit_quantity:1})">+ Add conversion</button>
+        <div class="flex items-center gap-3">
+            <select class="rounded-lg border-slate-200 text-sm py-1.5" @change="applyPreset($event.target.value); $event.target.value = ''">
+                <option value="">-- Load from preset --</option>
+                <template x-for="p in presets" :key="p.id">
+                    <option :value="p.id" x-show="p.base_unit_id == $refs.baseUnitSelect?.value" x-text="p.name"></option>
+                </template>
+            </select>
+            <button type="button" class="btn-soft" @click="rows.push({unit_id:'',unit_quantity:1})">+ Add conversion</button>
+        </div>
     </div>
     <div class="overflow-x-auto" x-show="rows.length > 0">
         <table>
