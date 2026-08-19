@@ -44,7 +44,7 @@ else{$catalog=$items->map(fn($r)=>['key'=>'r'.$r->id,'product_id'=>$r->product_i
             </div>
             
             <div class="grid grid-cols-2 gap-4">
-                <a href="{{ route('sales.pdf', $saleSuccess->id) }}" class="flex flex-col items-center justify-center p-4 bg-indigo-50 hover:bg-indigo-100 border border-indigo-100 rounded-xl text-indigo-700 transition font-bold gap-2">
+                <a href="{{ route('sales.pdf', $saleSuccess->id) }}" target="_blank" class="flex flex-col items-center justify-center p-4 bg-indigo-50 hover:bg-indigo-100 border border-indigo-100 rounded-xl text-indigo-700 transition font-bold gap-2">
                     <i class="ti ti-file-download text-3xl"></i> Download PDF Invoice
                 </a>
                 <button type="button" @click="openSmsModal()" class="flex flex-col items-center justify-center p-4 bg-emerald-50 hover:bg-emerald-100 border border-emerald-100 rounded-xl text-emerald-700 transition font-bold gap-2">
@@ -111,24 +111,17 @@ else{$catalog=$items->map(fn($r)=>['key'=>'r'.$r->id,'product_id'=>$r->product_i
             </div>
         </div>
         
-        <div x-show="customerId && !customerPhone" class="mb-4">
-            <div class="bg-blue-50 text-blue-800 p-4 rounded-xl border border-blue-200 mb-4 text-sm">
-                Customer <strong>{{ $saleSuccess->customer?->name }}</strong> has no phone number.
-            </div>
-            <label class="block text-sm font-semibold text-slate-700 mb-1">Mobile Number</label>
-            <input type="text" x-model="customerPhone" class="w-full rounded-xl border-slate-200 py-2.5 px-3 text-lg font-bold" placeholder="07XXXXXXXX">
-        </div>
-        
-        <div x-show="customerId && customerPhone" class="mb-6">
+        <div x-show="customerId" class="mb-6">
             <p class="text-slate-600 mb-2">Send receipt via SMS to:</p>
-            <div class="flex items-center gap-3 p-3 bg-slate-50 border border-slate-200 rounded-xl">
-                <div class="h-10 w-10 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center font-bold text-lg">
-                    <i class="ti ti-user"></i>
+            <div class="bg-slate-50 border border-slate-200 rounded-xl p-4">
+                <div class="font-bold text-slate-800 mb-3 flex items-center gap-2">
+                    <div class="h-8 w-8 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center font-bold">
+                        <i class="ti ti-user"></i>
+                    </div>
+                    {{ $saleSuccess->customer?->name }}
                 </div>
-                <div>
-                    <div class="font-bold text-slate-800">{{ $saleSuccess->customer?->name }}</div>
-                    <div class="text-slate-500 font-mono text-sm" x-text="customerPhone"></div>
-                </div>
+                <label class="block text-xs font-semibold text-slate-500 mb-1">Mobile Number</label>
+                <input type="text" x-model="customerPhone" class="w-full rounded-lg border-slate-200 py-2.5 px-3 font-mono text-lg font-bold" placeholder="07XXXXXXXX">
             </div>
         </div>
         
@@ -160,10 +153,7 @@ function saleSuccessModal() {
         },
         
         closeAll() {
-            // Remove the session visually by hiding the modal
-            this.$el.remove();
-            // Refocus barcode scanner if possible
-            document.querySelector('[x-model="search"]')?.focus();
+            window.location.href = "{{ route('pos.' . $type) }}";
         },
         
         canSendSms() {
