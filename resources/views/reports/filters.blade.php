@@ -1,7 +1,10 @@
 <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 mb-6" x-data="reportFilters()">
     <form method="GET" id="filter-form">
         <!-- Preserve existing query params if needed (like export) -->
-        @foreach(request()->except(['from', 'to', 'export', 'page']) as $key => $value)
+        @php
+            $ignoreFields = isset($ignore) ? array_merge(['from', 'to', 'export', 'page'], $ignore) : ['from', 'to', 'export', 'page'];
+        @endphp
+        @foreach(request()->except($ignoreFields) as $key => $value)
             <input type="hidden" name="{{ $key }}" value="{{ $value }}" id="hidden-{{ $key }}">
         @endforeach
         

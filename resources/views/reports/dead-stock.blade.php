@@ -15,7 +15,7 @@
     </div>
 </div>
 
-@component('reports.filters')
+@component('reports.filters', ['ignore' => ['category_id', 'days']])
     <div>
         <label class="block text-sm font-semibold text-slate-700 mb-1">Not Sold In (Days)</label>
         <input type="number" name="days" value="{{ request('days', 90) }}" class="rounded-xl border-slate-200 py-2.5 px-3 w-32" onchange="document.getElementById('filter-form').submit()">
