@@ -27,7 +27,7 @@ class UnitPresetController extends Controller
 
     public function store(Request $request)
     {
-        $this->authorize('manage-products');
+        $this->authorize('unit_presets.manage');
         $data = $this->validated($request);
 
         DB::transaction(function () use ($data) {
@@ -56,7 +56,7 @@ class UnitPresetController extends Controller
 
     public function update(Request $request, UnitPreset $unitPreset)
     {
-        $this->authorize('manage-products');
+        $this->authorize('unit_presets.manage');
         $data = $this->validated($request, $unitPreset);
 
         DB::transaction(function () use ($data, $unitPreset) {
@@ -73,7 +73,7 @@ class UnitPresetController extends Controller
 
     public function destroy(UnitPreset $unitPreset)
     {
-        $this->authorize('manage-products');
+        $this->authorize('unit_presets.manage');
         $unitPreset->delete();
 
         return redirect()->route('unit-presets.index')->with('success', 'Multiple unit preset deleted. Product conversions were not changed.');

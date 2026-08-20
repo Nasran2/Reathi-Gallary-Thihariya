@@ -31,4 +31,12 @@ class User extends Authenticatable
             'active' => 'boolean',
         ];
     }
+
+    /**
+     * Backwards-compatible display value for layouts that predate Spatie roles.
+     */
+    public function getRoleAttribute(): string
+    {
+        return $this->getRoleNames()->implode(', ');
+    }
 }

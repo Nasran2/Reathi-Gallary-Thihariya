@@ -30,7 +30,7 @@ class ProductController extends Controller
 
     public function store(Request $r, \App\Services\InventoryService $inventoryService)
     {
-        $this->authorize('manage-products');
+        $this->authorize('products.create');
         $data = $this->validated($r);
         $product = null;
         DB::transaction(function () use ($data, $r, $inventoryService, &$product) {
@@ -73,7 +73,7 @@ class ProductController extends Controller
 
     public function update(Request $r, Product $product, \App\Services\InventoryService $inventoryService)
     {
-        $this->authorize('manage-products');
+        $this->authorize('products.edit');
         $data = $this->validated($r, $product);
         DB::transaction(function () use ($data, $product, $r, $inventoryService) {
             $units = $data['units'] ?? [];
@@ -93,7 +93,7 @@ class ProductController extends Controller
 
     public function destroy(Product $product)
     {
-        $this->authorize('manage-products');
+        $this->authorize('products.delete');
         try {
             DB::transaction(function () use ($product) {
                 $product->productUnits()->delete();

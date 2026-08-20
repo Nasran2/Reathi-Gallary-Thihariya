@@ -7,9 +7,9 @@
         <h1 class="font-serif text-3xl text-ink">User Management</h1>
         <p class="mt-1 text-slate-500">Manage system users and access.</p>
     </div>
-    <a href="{{ route('users.create') }}" class="btn-teal">
+    @can('users.create')<a href="{{ route('users.create') }}" class="btn-teal">
         <i class="ti ti-plus mr-2"></i>New User
-    </a>
+    </a>@endcan
 </div>
 
 <div class="card overflow-hidden">
@@ -43,8 +43,8 @@
                         </td>
                         <td class="px-6 py-4 text-right">
                             <div class="flex items-center justify-end gap-2">
-                                <a href="{{ route('users.edit', $user) }}" class="btn-soft !px-3 !py-1.5 text-xs">Edit</a>
-                                @if(auth()->id() !== $user->id)
+                                @can('users.edit')<a href="{{ route('users.edit', $user) }}" class="btn-soft !px-3 !py-1.5 text-xs">Edit</a>@endcan
+                                @if(auth()->id() !== $user->id && auth()->user()->can('users.delete'))
                                     <form action="{{ route('users.destroy', $user) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this user?');">
                                         @csrf
                                         @method('DELETE')

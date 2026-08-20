@@ -28,7 +28,7 @@ class PurchaseService
             );
             $systemTotal = collect($data['items'])->reduce(
                 fn (BigDecimal $total, array $i) => $total->plus(
-                    Decimal::of($i['quantity'])->multipliedBy(Decimal::of($i['system_unit_cost']))
+                    Decimal::of($i['quantity'])->multipliedBy(Decimal::of($i['system_unit_cost'] ?? $i['supplier_unit_cost']))
                 ), BigDecimal::zero()
             );
             $extraTotal = (string) ($data['extra_cost_total'] ?? 0);
@@ -48,7 +48,11 @@ class PurchaseService
                 $baseQty = Decimal::mul($line['quantity'], $productUnit->conversion_rate, 6);
                 $supplierLine = Decimal::of($line['quantity'])->multipliedBy(Decimal::of($line['supplier_unit_cost']))
                     ->minus(Decimal::of($line['discount_amount'] ?? 0))->plus(Decimal::of($line['tax_amount'] ?? 0));
-                $systemLine = Decimal::of($line['quantity'])->multipliedBy(Decimal::of($line['system_unit_cost']));
+                // Older integrations and existing test/data paths predate the separate
+                // system-cost field. In that case the supplier cost is the safe,
+                // backwards-compatible inventory valuation input.
+                $systemUnitCost = $line['system_unit_cost'] ?? $line['supplier_unit_cost'];
+                $systemLine = Decimal::of($line['quantity'])->multipliedBy(Decimal::of($systemUnitCost));
                 
                 $allocationRatio = $systemTotal->isZero() ? Decimal::of(0) : $systemLine->dividedBy($systemTotal, 12, RoundingMode::HalfUp);
                 $allocated = Decimal::of($extraTotal)->multipliedBy($allocationRatio);
@@ -62,7 +66,7 @@ class PurchaseService
                 $item = $purchase->items()->create([
                     'product_id' => $product->id, 'unit_id' => $line['unit_id'], 'quantity' => $line['quantity'],
                     'conversion_rate' => $productUnit->conversion_rate, 'base_quantity' => $baseQty,
-                    'supplier_unit_cost' => $line['supplier_unit_cost'], 'system_unit_cost' => $line['system_unit_cost'],
+                    'supplier_unit_cost' => $line['supplier_unit_cost'], 'system_unit_cost' => $systemUnitCost,
                     'discount_amount' => $line['discount_amount'] ?? 0, 'tax_amount' => $line['tax_amount'] ?? 0, 
                     'supplier_line_total' => $supplierLine, 'allocated_extra_cost' => $allocated, 
                     'landed_unit_cost' => $landedUnit, 'previous_average_cost' => $product->average_cost, 'new_average_cost' => $newAverage,

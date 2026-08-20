@@ -17,13 +17,16 @@
         <p class="mt-2 text-slate-500">Here is how your textile business is moving today.</p>
     </div>
     <div class="flex gap-2">
-        <a href="{{ route('purchases.create') }}" class="btn-soft">Receive stock</a>
-        <a href="{{ route('pos.main') }}" class="btn-teal">Open Main POS</a>
+        @can('purchases.create')<a href="{{ route('purchases.create') }}" class="btn-soft">Receive stock</a>@endcan
+        @can('pos.main.access')<a href="{{ route('pos.main') }}" class="btn-teal">Open Main POS</a>@endcan
     </div>
 </div>
 
 @php 
-    $cards=[['Today’s sales',$stats['sales'],'teal'],['Main sales',$stats['main_sales'],'ink'],['Remnant sales',$stats['remnant_sales'],'amber'],['Gross profit',$stats['gross_profit'],'emerald'],['Expenses',$stats['expenses'],'rose'],['Net profit',$stats['net_profit'],'plum']]; 
+    $cards=[['Today’s sales',$stats['sales'],'teal'],['Main sales',$stats['main_sales'],'ink'],['Remnant sales',$stats['remnant_sales'],'amber']];
+    if(auth()->user()->can('dashboard.view_profit')) {
+        $cards = array_merge($cards, [['Gross profit',$stats['gross_profit'],'emerald'],['Expenses',$stats['expenses'],'rose'],['Net profit',$stats['net_profit'],'plum']]);
+    }
 @endphp
 <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6 animate-fade-in-up" style="animation-delay: 0.1s;">
     @foreach($cards as [$label,$value,$tone])
@@ -35,7 +38,7 @@
     @endforeach
 </div>
 
-@if($upcomingCheques->isNotEmpty())
+@if(auth()->user()->can('cheques.view') && $upcomingCheques->isNotEmpty())
 @php
     $incomingCheques = $upcomingCheques->filter(fn($c) => $c->direction === 'received' && $c->status !== 'endorsed');
     $outgoingCheques = $upcomingCheques->filter(fn($c) => $c->direction === 'issued' || $c->status === 'endorsed');
@@ -141,15 +144,17 @@
         </div>
     </section>
 
+    @if(auth()->user()->hasAnyPermission(['dashboard.view_customer_due','dashboard.view_supplier_due','dashboard.view_stock_value']))
     <section class="card p-6 animate-fade-in-up" style="animation-delay: 0.25s;">
         <h2 class="font-serif text-2xl text-ink">Financial position</h2>
         <div class="mt-6 space-y-5">
-            <div class="flex justify-between border-b border-slate-100 pb-4"><span class="text-sm text-slate-500">Customer due</span><strong>Rs. {{ number_format($stats['customer_due'],2) }}</strong></div>
-            <div class="flex justify-between border-b border-slate-100 pb-4"><span class="text-sm text-slate-500">Supplier due</span><strong>Rs. {{ number_format($stats['supplier_due'],2) }}</strong></div>
-            <div class="flex justify-between border-b border-slate-100 pb-4"><span class="text-sm text-slate-500">Main stock cost</span><strong>Rs. {{ number_format($stats['main_stock_value'],2) }}</strong></div>
-            <div class="flex justify-between"><span class="text-sm text-slate-500">Remnant stock cost</span><strong>Rs. {{ number_format($stats['remnant_stock_value'],2) }}</strong></div>
+            @can('dashboard.view_customer_due')<div class="flex justify-between border-b border-slate-100 pb-4"><span class="text-sm text-slate-500">Customer due</span><strong>Rs. {{ number_format($stats['customer_due'],2) }}</strong></div>@endcan
+            @can('dashboard.view_supplier_due')<div class="flex justify-between border-b border-slate-100 pb-4"><span class="text-sm text-slate-500">Supplier due</span><strong>Rs. {{ number_format($stats['supplier_due'],2) }}</strong></div>@endcan
+            @can('dashboard.view_stock_value')<div class="flex justify-between border-b border-slate-100 pb-4"><span class="text-sm text-slate-500">Main stock cost</span><strong>Rs. {{ number_format($stats['main_stock_value'],2) }}</strong></div>
+            <div class="flex justify-between"><span class="text-sm text-slate-500">Remnant stock cost</span><strong>Rs. {{ number_format($stats['remnant_stock_value'],2) }}</strong></div>@endcan
         </div>
     </section>
+    @endif
 </div>
 
 <div class="mt-6 grid gap-6 xl:grid-cols-3">
@@ -161,7 +166,7 @@
         <div class="overflow-x-auto">
             <table>
                 <thead>
-                    <tr><th>Invoice</th><th>Customer</th><th>Type</th><th>Total</th><th>Profit</th></tr>
+                    <tr><th>Invoice</th><th>Customer</th><th>Type</th><th>Total</th>@can('dashboard.view_profit')<th>Profit</th>@endcan</tr>
                 </thead>
                 <tbody>
                     @forelse($recentSales as $sale)
@@ -170,7 +175,7 @@
                         <td>{{ $sale->customer?->name??'Walk-in' }}</td>
                         <td><span class="badge {{ $sale->sale_type==='remnant'?'bg-amber-100 text-amber-700':'bg-teal-50 text-teal-700' }}">{{ ucfirst($sale->sale_type) }}</span></td>
                         <td>Rs. {{ number_format($sale->grand_total,2) }}</td>
-                        <td class="{{ $sale->profit_total<0?'text-red-600':'text-emerald-600' }} font-medium">Rs. {{ number_format($sale->profit_total,2) }}</td>
+                        @can('dashboard.view_profit')<td class="{{ $sale->profit_total<0?'text-red-600':'text-emerald-600' }} font-medium">Rs. {{ number_format($sale->profit_total,2) }}</td>@endcan
                     </tr>
                     @empty
                     <tr><td colspan="5" class="text-center text-slate-400">No sales recorded yet.</td></tr>

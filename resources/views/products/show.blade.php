@@ -27,11 +27,13 @@
         </div>
         <div class="flex items-center gap-2">
             <a href="{{ route('products.index') }}" class="btn-soft">Back to Products</a>
-            @can('manage-products')
+            @can('products.edit')
                 <a href="{{ route('products.edit', $product) }}" class="btn-soft">
                     <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
                     Edit Product
                 </a>
+            @endcan
+            @can('products.delete')
                 <form method="POST" action="{{ route('products.destroy', $product) }}" data-confirm="Delete this product? This cannot be undone.">
                     @csrf
                     @method('DELETE')
@@ -77,7 +79,7 @@
     <div class="card p-5 relative overflow-hidden">
         <div class="absolute right-0 top-0 -mt-4 -mr-4 h-24 w-24 rounded-full bg-purple-50 opacity-50"></div>
         <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 relative z-10">Average Cost</p>
-        @can('view-cost')
+        @can('products.view_cost')
             <h3 class="text-2xl font-bold text-slate-800 relative z-10">Rs. {{ number_format($product->average_cost, 2) }}</h3>
         @else
             <h3 class="text-lg font-semibold text-slate-300 relative z-10">Restricted</h3>

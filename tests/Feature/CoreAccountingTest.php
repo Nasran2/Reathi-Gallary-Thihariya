@@ -153,6 +153,7 @@ class CoreAccountingTest extends TestCase
             'password' => bcrypt('password'),
             'active' => true,
         ]);
+        $user->givePermissionTo(\Spatie\Permission\Models\Permission::findOrCreate('sales.view', 'web'));
         $sale->update(['user_id' => $user->id]);
         $sale->load('items.product', 'items.unit', 'items.remnant', 'payments.method', 'customer', 'store', 'user');
 

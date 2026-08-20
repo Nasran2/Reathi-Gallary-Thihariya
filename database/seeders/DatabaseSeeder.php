@@ -16,13 +16,19 @@ use App\Services\InventoryService;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\Models\Role;
+use Spatie\Permission\Models\Permission;
+use Spatie\Permission\PermissionRegistrar;
 
 class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+        $permissions = collect(config('access.groups'))->flatMap(fn ($group) => array_keys($group));
+        $permissions->each(fn ($name) => Permission::findOrCreate($name, 'web'));
         $admin = User::updateOrCreate(['email' => 'admin@reathi.test'], ['username' => 'admin', 'name' => 'Reathi Administrator', 'password' => Hash::make('password'), 'active' => true]);
         $superAdminRole = Role::firstOrCreate(['name' => 'super_admin', 'guard_name' => 'web']);
+        $superAdminRole->syncPermissions($permissions);
         $admin->syncRoles([$superAdminRole]);
         $store = Store::firstOrCreate(['code' => 'MAIN'], ['name' => 'Main Store', 'address' => 'Colombo, Sri Lanka', 'is_default' => true, 'active' => true]);
         $meter = Unit::firstOrCreate(['symbol' => 'm'], ['name' => 'Meter', 'allows_decimal' => true]);

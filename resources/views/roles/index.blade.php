@@ -7,9 +7,9 @@
         <h1 class="font-serif text-3xl text-ink">Roles & Permissions</h1>
         <p class="mt-1 text-slate-500">Manage user roles and their access levels.</p>
     </div>
-    <a href="{{ route('roles.create') }}" class="btn-teal">
+    @can('roles.create')<a href="{{ route('roles.create') }}" class="btn-teal">
         <i class="ti ti-plus mr-2"></i>New Role
-    </a>
+    </a>@endcan
 </div>
 
 <div class="card overflow-hidden">
@@ -41,8 +41,8 @@
                         </td>
                         <td class="px-6 py-4 text-right">
                             <div class="flex items-center justify-end gap-2">
-                                <a href="{{ route('roles.edit', $role) }}" class="btn-soft !px-3 !py-1.5 text-xs">Edit</a>
-                                @if($role->name !== 'super_admin')
+                                @can('roles.edit')<a href="{{ route('roles.edit', $role) }}" class="btn-soft !px-3 !py-1.5 text-xs">Edit</a>@endcan
+                                @if($role->name !== 'super_admin' && auth()->user()->can('roles.delete'))
                                     <form action="{{ route('roles.destroy', $role) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this role?');">
                                         @csrf
                                         @method('DELETE')

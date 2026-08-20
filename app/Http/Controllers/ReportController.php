@@ -52,7 +52,7 @@ class ReportController extends Controller
 
         $query = Product::with(['defaultSupplier', 'baseUnit'])
             ->withSum('balances as total_stock', 'quantity')
-            ->havingRaw('COALESCE(total_stock, 0) <= minimum_stock OR COALESCE(total_stock, 0) <= reorder_level')
+            ->whereRaw('(SELECT COALESCE(SUM(quantity), 0) FROM inventory_balances WHERE inventory_balances.product_id = products.id) <= products.minimum_stock OR (SELECT COALESCE(SUM(quantity), 0) FROM inventory_balances WHERE inventory_balances.product_id = products.id) <= products.reorder_level')
             ->where('active', 1);
 
         if ($r->filled('supplier_id')) {
@@ -169,6 +169,27 @@ class ReportController extends Controller
         $to = now();
 
         return $this->render($r, 'reports.customer-due', compact('customers_due', 'customers', 'from', 'to'), 'Customer Due Report');
+    }
+
+    public function supplierDue(Request $r)
+    {
+        $this->authorize('reports.supplier_due');
+
+        $balanceSql = "COALESCE((SELECT balance_after FROM supplier_ledger WHERE supplier_id = suppliers.id ORDER BY id DESC LIMIT 1), opening_balance) - COALESCE((SELECT SUM(amount) FROM supplier_payments WHERE supplier_id = suppliers.id AND status = 'pending'),0)";
+        $query = Supplier::select('suppliers.*')
+            ->selectRaw("CASE WHEN ({$balanceSql}) > 0 THEN ({$balanceSql}) ELSE 0 END AS due_total")
+            ->whereRaw("({$balanceSql}) > 0");
+
+        if ($r->filled('supplier_id')) {
+            $query->where('id', $r->integer('supplier_id'));
+        }
+
+        $suppliersDue = $query->orderByDesc('due_total')->get();
+        $suppliers = Supplier::orderBy('name')->get();
+        $from = now();
+        $to = now();
+
+        return $this->render($r, 'reports.supplier-due', compact('suppliersDue', 'suppliers', 'from', 'to'), 'Supplier Due Report');
     }
 
     public function dailyClosing(Request $r)

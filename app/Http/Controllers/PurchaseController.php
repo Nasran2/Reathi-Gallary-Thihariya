@@ -58,7 +58,7 @@ class PurchaseController extends Controller
 
     public function store(Request $r, PurchaseService $service, PaymentService $payments, ChequeService $cheques)
     {
-        $this->authorize('manage-purchases');
+        $this->authorize('purchases.create');
         $data = $r->validate([
             'supplier_id' => 'required|exists:suppliers,id', 'store_id' => 'required|exists:stores,id', 
             'supplier_invoice_no' => 'nullable|max:100', 'reference_no' => 'nullable|max:100', 
@@ -113,7 +113,7 @@ class PurchaseController extends Controller
 
     public function destroy(Purchase $purchase, PurchaseService $service)
     {
-        $this->authorize('manage-purchases');
+        $this->authorize('purchases.cancel');
         try {
             $service->delete($purchase);
             return redirect()->route('purchases.index')->with('success', 'Purchase deleted and stock reverted.');
