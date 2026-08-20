@@ -70,11 +70,6 @@
     .pos-shell > .grid > section > .grid > button > div:first-child { height: 72px; margin-bottom: 10px; }
     .pos-shell > .grid > section > .grid > button > .flex.justify-between.gap-2 { display: block; }
     .pos-shell > .grid > section > .grid > button > .flex.justify-between.gap-2 > .text-right { margin-top: 5px; text-align: left; }
-    .pos-cart-line { align-items: stretch; flex-wrap: wrap; gap: 8px; padding: 10px; }
-    .pos-cart-product { flex-basis: calc(100% - 40px); min-width: 0; }
-    .pos-cart-controls { width: 100%; display: grid; grid-template-columns: minmax(68px, .8fr) minmax(84px, 1fr) minmax(100px, 1.2fr) 36px; gap: 6px; }
-    .pos-cart-controls > div { width: auto; min-width: 0; }
-    .pos-cart-controls input, .pos-cart-controls select { height: 42px; font-size: 14px; }
     .pos-shell > .grid > aside > div:first-child { padding: 14px; }
     .pos-shell > .grid > aside > div:nth-child(2) { padding: 10px; }
     .pos-shell > .grid > aside > div:last-child { padding: 14px; }

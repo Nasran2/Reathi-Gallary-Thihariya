@@ -11,32 +11,32 @@ else{$catalog=$items->map(fn($r)=>['key'=>'r'.$r->id,'product_id'=>$r->product_i
  <aside class="border-l border-slate-200 bg-white"><div class="border-b border-slate-100 p-5"><div class="flex items-center justify-between"><h2 class="font-serif text-2xl text-ink">Current cart</h2><button type="button" class="text-xs font-semibold text-red-500" @click="cart=[]" x-show="cart.length">Clear</button></div><div x-show="paymentError && !showPaymentModal" class="mt-4 rounded-lg bg-red-100 p-3 text-sm font-semibold text-red-700" x-text="paymentError" style="display:none;"></div><div class="mt-4"><label>Customer</label><select class="w-full" name="customer_id" x-model="customer"><option value="">Walk-in / cash sale</option>@foreach($customers as $c)<option value="{{ $c->id }}">{{ $c->name }} {{ $c->mobile?'· '.$c->mobile:'' }}</option>@endforeach</select></div></div>
  <div class="max-h-[42vh] min-h-48 overflow-y-auto p-4">
     <template x-for="(line,i) in cart" :key="line.lineKey">
-        <div class="pos-cart-line mb-2 flex items-center justify-between rounded-xl border border-slate-100 p-2 hover:bg-slate-50 transition">
+        <div class="mb-2 flex items-center justify-between rounded-xl border border-slate-100 p-1.5 sm:p-2 hover:bg-slate-50 transition">
             <input type="hidden" :name="itemFieldName(i, 'product_id')" :value="line.product_id">
             <input type="hidden" :name="itemFieldName(i, 'remnant_id')" :value="line.remnant_id||''">
             
-            <div class="pos-cart-product flex-1 cursor-pointer pr-2" @click="openEditModal(i)">
-                <div class="text-sm font-bold text-ink" x-text="line.name"></div>
-                <div class="flex items-center gap-2 text-[11px] text-slate-500">
-                    <span x-text="line.remnant_no||line.sku"></span>
-                    <span x-show="line.discount_value > 0" class="rounded bg-amber-100 px-1 font-semibold text-amber-700" x-text="line.discount_type === 'percentage' ? line.discount_value + '% OFF' : 'Rs.' + money(line.discount_value) + ' OFF'"></span>
+            <div class="flex-1 cursor-pointer pr-1 sm:pr-2 min-w-0" @click="openEditModal(i)">
+                <div class="truncate text-xs sm:text-sm font-bold text-ink" x-text="line.name"></div>
+                <div class="flex flex-wrap items-center gap-1 sm:gap-2 text-[10px] sm:text-[11px] text-slate-500">
+                    <span class="truncate" x-text="line.remnant_no||line.sku"></span>
+                    <span x-show="line.discount_value > 0" class="whitespace-nowrap rounded bg-amber-100 px-1 font-semibold text-amber-700" x-text="line.discount_type === 'percentage' ? line.discount_value + '% OFF' : 'Rs.' + money(line.discount_value) + ' OFF'"></span>
                 </div>
             </div>
             
-            <div class="pos-cart-controls flex items-center gap-2">
-                <div class="w-20">
-                    <select class="w-full !px-2 !py-1 text-xs h-8 bg-white" :name="itemFieldName(i, 'unit_id')" x-model.number="line.unit_id" @change="unitChanged(line)">
+            <div class="flex items-center gap-1 sm:gap-2 shrink-0">
+                <div class="w-12 sm:w-20">
+                    <select class="w-full !px-1 sm:!px-2 !py-1 text-[10px] sm:text-xs h-7 sm:h-8 bg-white" :name="itemFieldName(i, 'unit_id')" x-model.number="line.unit_id" @change="unitChanged(line)">
                         <template x-for="u in line.units"><option :value="u.unit_id" x-text="u.symbol"></option></template>
                     </select>
                 </div>
-                <div class="w-20">
-                    <input class="w-full !px-2 !py-1 text-xs h-8" type="number" min="0.000001" step="0.000001" :max="line.maxDisplay" :name="itemFieldName(i, 'quantity')" x-model.number="line.quantity" required>
+                <div class="w-14 sm:w-20">
+                    <input class="w-full !px-1 sm:!px-2 !py-1 text-[10px] sm:text-xs h-7 sm:h-8" type="number" min="0.000001" step="0.000001" :max="line.maxDisplay" :name="itemFieldName(i, 'quantity')" x-model.number="line.quantity" required>
                 </div>
-                <div class="w-24 text-right cursor-pointer" @click="openEditModal(i)">
-                    <div class="text-sm font-bold text-ink">Rs. <span x-text="money(lineTotal(line))"></span></div>
-                    <div class="text-[10px] text-slate-400">@ <span x-text="money(line.price)"></span></div>
+                <div class="w-16 sm:w-24 text-right cursor-pointer" @click="openEditModal(i)">
+                    <div class="truncate text-xs sm:text-sm font-bold text-ink">Rs. <span x-text="money(lineTotal(line))"></span></div>
+                    <div class="truncate text-[9px] sm:text-[10px] text-slate-400">@ <span x-text="money(line.price)"></span></div>
                 </div>
-                <button type="button" class="ml-1 text-red-400 hover:text-red-600 p-1" @click="removeCartLine(i)">
+                <button type="button" class="text-red-400 hover:text-red-600 p-1 shrink-0" @click="removeCartLine(i)">
                     ✕
                 </button>
             </div>
