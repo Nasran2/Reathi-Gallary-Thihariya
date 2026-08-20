@@ -45,7 +45,7 @@ class PurchaseController extends Controller
             'extra_cost_total' => 'nullable|numeric|min:0', 'notes' => 'nullable', 
             'items' => 'required|array|min:1', 'items.*.product_id' => 'required|exists:products,id', 
             'items.*.unit_id' => 'required|exists:units,id', 'items.*.quantity' => 'required|numeric|gt:0', 
-            'items.*.supplier_unit_cost' => 'required|numeric|min:0', 'items.*.discount_amount' => 'nullable|numeric|min:0', 
+            'items.*.supplier_unit_cost' => 'required|numeric|min:0', 'items.*.system_unit_cost' => 'required|numeric|min:0', 'items.*.discount_amount' => 'nullable|numeric|min:0', 
             'items.*.tax_amount' => 'nullable|numeric|min:0',
             'payments' => 'nullable|array',
             'payments.*.payment_method_id' => 'required|exists:payment_methods,id',
@@ -53,7 +53,6 @@ class PurchaseController extends Controller
             'payments.*.reference' => 'nullable|max:150',
             'payments.*.cheque_number' => 'nullable|max:80',
             'payments.*.bank' => 'nullable|max:120',
-            'payments.*.business_bank_account' => 'nullable|max:150',
             'payments.*.cheque_date' => 'nullable|date',
             'payments.*.cheque_id' => 'nullable|exists:cheques,id',
         ]);
@@ -88,7 +87,7 @@ class PurchaseController extends Controller
 
     public function show(Purchase $purchase)
     {
-        return view('purchases.show', ['purchase' => $purchase->load('supplier', 'store', 'items.product', 'items.unit')]);
+        return view('purchases.show', ['purchase' => $purchase->load('supplier', 'store', 'items.product', 'items.unit', 'paymentAllocations.payment.method', 'paymentAllocations.payment.cheque')]);
     }
 
     public function destroy(Purchase $purchase, PurchaseService $service)

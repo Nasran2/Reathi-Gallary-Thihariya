@@ -26,6 +26,11 @@ class PurchaseService
                         ->minus(Decimal::of($i['discount_amount'] ?? 0))->plus(Decimal::of($i['tax_amount'] ?? 0))
                 ), BigDecimal::zero()
             );
+            $systemTotal = collect($data['items'])->reduce(
+                fn (BigDecimal $total, array $i) => $total->plus(
+                    Decimal::of($i['quantity'])->multipliedBy(Decimal::of($i['system_unit_cost']))
+                ), BigDecimal::zero()
+            );
             $extraTotal = (string) ($data['extra_cost_total'] ?? 0);
             $purchase = Purchase::create([
                 'uuid' => Str::uuid(), 'purchase_no' => 'PUR-'.now()->format('ymdHis').'-'.random_int(10, 99),
@@ -43,19 +48,24 @@ class PurchaseService
                 $baseQty = Decimal::mul($line['quantity'], $productUnit->conversion_rate, 6);
                 $supplierLine = Decimal::of($line['quantity'])->multipliedBy(Decimal::of($line['supplier_unit_cost']))
                     ->minus(Decimal::of($line['discount_amount'] ?? 0))->plus(Decimal::of($line['tax_amount'] ?? 0));
-                $allocationRatio = $supplierTotal->isZero() ? Decimal::of(0) : $supplierLine->dividedBy($supplierTotal, 12, RoundingMode::HalfUp);
+                $systemLine = Decimal::of($line['quantity'])->multipliedBy(Decimal::of($line['system_unit_cost']));
+                
+                $allocationRatio = $systemTotal->isZero() ? Decimal::of(0) : $systemLine->dividedBy($systemTotal, 12, RoundingMode::HalfUp);
                 $allocated = Decimal::of($extraTotal)->multipliedBy($allocationRatio);
-                $landedTotal = $supplierLine->plus($allocated);
+                
+                // Landed value for inventory uses systemLine + allocated extra
+                $landedTotal = $systemLine->plus($allocated);
                 $landedUnit = $landedTotal->dividedBy(Decimal::of($baseQty), 8, RoundingMode::HalfUp);
+                
                 $currentQty = InventoryBalance::where(['product_id' => $product->id, 'store_id' => $data['store_id'], 'inventory_type' => 'main'])->lockForUpdate()->value('quantity') ?? 0;
                 $newAverage = $this->inventory->weightedAverage($currentQty, $product->average_cost, $baseQty, $landedUnit);
                 $item = $purchase->items()->create([
                     'product_id' => $product->id, 'unit_id' => $line['unit_id'], 'quantity' => $line['quantity'],
                     'conversion_rate' => $productUnit->conversion_rate, 'base_quantity' => $baseQty,
-                    'supplier_unit_cost' => $line['supplier_unit_cost'], 'discount_amount' => $line['discount_amount'] ?? 0,
-                    'tax_amount' => $line['tax_amount'] ?? 0, 'supplier_line_total' => $supplierLine,
-                    'allocated_extra_cost' => $allocated, 'landed_unit_cost' => $landedUnit,
-                    'previous_average_cost' => $product->average_cost, 'new_average_cost' => $newAverage,
+                    'supplier_unit_cost' => $line['supplier_unit_cost'], 'system_unit_cost' => $line['system_unit_cost'],
+                    'discount_amount' => $line['discount_amount'] ?? 0, 'tax_amount' => $line['tax_amount'] ?? 0, 
+                    'supplier_line_total' => $supplierLine, 'allocated_extra_cost' => $allocated, 
+                    'landed_unit_cost' => $landedUnit, 'previous_average_cost' => $product->average_cost, 'new_average_cost' => $newAverage,
                 ]);
                 $product->update(['average_cost' => $newAverage]);
                 $this->inventory->move($product, $data['store_id'], 'main', 'purchase', $baseQty, 0, $landedUnit, $item, $userId, "Received {$purchase->purchase_no}");

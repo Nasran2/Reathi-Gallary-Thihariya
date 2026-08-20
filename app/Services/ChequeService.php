@@ -44,7 +44,7 @@ class ChequeService
             $cheque = Cheque::create([
                 'uuid' => Str::uuid(), 'direction' => 'issued', 'source_type' => 'business', 'supplier_id' => $data['supplier_id'],
                 'cheque_number' => $data['cheque_number'], 'bank' => $data['bank'], 'branch' => $data['branch'] ?? null,
-                'business_bank_account' => $data['business_bank_account'], 'account_name' => $data['account_name'] ?? null,
+                'business_bank_account' => $data['business_bank_account'] ?? null, 'account_name' => $data['account_name'] ?? null,
                 'cheque_date' => $data['cheque_date'], 'issue_date' => $data['issue_date'], 'amount' => Decimal::money($data['amount']),
                 'status' => 'pending', 'attachment_path' => $data['attachment_path'] ?? null, 'notes' => $data['notes'] ?? null, 'created_by' => $userId,
             ]);
