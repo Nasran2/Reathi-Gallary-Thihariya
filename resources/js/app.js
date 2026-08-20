@@ -246,6 +246,14 @@ Alpine.data('customerManager', () => ({
     },
 }));
 
+document.addEventListener('submit', event => {
+    const form = event.target.closest('form[data-confirm]');
+
+    if (form && !window.confirm(form.dataset.confirm)) {
+        event.preventDefault();
+    }
+});
+
 // These components still live beside their Blade templates. Registering them
 // with Alpine keeps them compatible with the CSP evaluator without eval().
 [

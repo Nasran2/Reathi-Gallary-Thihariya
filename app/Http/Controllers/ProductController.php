@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\Category;
+use App\Models\InventoryMovement;
 use App\Models\Product;
+use App\Models\SaleItem;
 use App\Models\Supplier;
 use App\Models\Unit;
 use App\Models\UnitPreset;
@@ -77,17 +79,24 @@ class ProductController extends Controller
 
     public function show(Product $product)
     {
-        $product->load(['category', 'baseUnit', 'productUnits.unit', 'balances.store', 'suppliers']);
-        
-        $totalSales = \App\Models\SaleItem::where('product_id', $product->id)->sum('net_revenue');
-        $totalProfit = \App\Models\SaleItem::where('product_id', $product->id)->sum('profit');
-        
-        $movements = \App\Models\InventoryMovement::with(['reference', 'user'])
-            ->where('product_id', $product->id)
+        $product->load(['category', 'brand', 'baseUnit', 'productUnits.unit', 'balances.store', 'suppliers']);
+
+        $totalSales = SaleItem::where('product_id', $product->id)->sum('net_revenue');
+        $movementQuery = InventoryMovement::where('product_id', $product->id);
+        $totalStockIn = (clone $movementQuery)->sum('quantity_in');
+        $totalStockOut = (clone $movementQuery)->sum('quantity_out');
+
+        $movements = $movementQuery->with(['reference', 'user', 'store'])
             ->latest()
             ->paginate(15);
-            
-        return view('products.show', compact('product', 'totalSales', 'totalProfit', 'movements'));
+
+        return view('products.show', compact(
+            'product',
+            'totalSales',
+            'totalStockIn',
+            'totalStockOut',
+            'movements'
+        ));
     }
 
     public function categories()
@@ -110,7 +119,27 @@ class ProductController extends Controller
 
     private function validated(Request $r, ?Product $p = null)
     {
+        $r->merge([
+            'name' => trim((string) $r->input('name')),
+            'sku' => trim((string) $r->input('sku')),
+            'barcode' => filled($r->input('barcode')) ? trim((string) $r->input('barcode')) : null,
+        ]);
+
         $data = $r->validate(['name' => 'required|max:150', 'sku' => 'required|max:80|unique:products,sku,'.($p?->id ?? 'NULL'), 'barcode' => 'nullable|max:80|unique:products,barcode,'.($p?->id ?? 'NULL'), 'category_id' => 'nullable|exists:categories,id', 'base_unit_id' => 'required|exists:units,id', 'default_purchase_unit_id' => 'nullable|exists:units,id', 'default_selling_unit_id' => 'nullable|exists:units,id', 'default_supplier_id' => 'nullable|exists:suppliers,id', 'brand_id' => 'nullable|exists:brands,id', 'fabric_type' => 'nullable|max:100', 'material' => 'nullable|max:100', 'colour' => 'nullable|max:100', 'pattern' => 'nullable|max:100', 'width' => 'nullable|max:100', 'description' => 'nullable', 'average_cost' => 'required|numeric|min:0', 'main_selling_price' => 'required|numeric|min:0', 'remnant_selling_price' => 'required|numeric|min:0', 'minimum_stock' => 'required|numeric|min:0', 'reorder_level' => 'required|numeric|min:0', 'tax_rate' => 'nullable|numeric|min:0', 'track_rolls' => 'boolean', 'active' => 'boolean', 'units' => 'nullable|array', 'units.*.unit_id' => 'required|distinct|exists:units,id', 'units.*.base_quantity' => 'required|numeric|gt:0', 'units.*.unit_quantity' => 'required|numeric|gt:0', 'units.*.can_purchase' => 'boolean', 'units.*.can_sell' => 'boolean']);
+
+        $otherProducts = Product::query()->when($p, fn ($query) => $query->whereKeyNot($p->id));
+
+        if ($data['barcode'] && (clone $otherProducts)->where('sku', $data['barcode'])->exists()) {
+            throw ValidationException::withMessages([
+                'barcode' => 'This barcode is already used as another product SKU.',
+            ]);
+        }
+
+        if ((clone $otherProducts)->where('barcode', $data['sku'])->exists()) {
+            throw ValidationException::withMessages([
+                'sku' => 'This SKU is already used as another product barcode.',
+            ]);
+        }
 
         foreach ($data['units'] ?? [] as $index => $unit) {
             if ((int) $unit['unit_id'] === (int) $data['base_unit_id']) {

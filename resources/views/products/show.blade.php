@@ -25,39 +25,63 @@
                 @endif
             </div>
         </div>
-        @can('manage-products')
-            <a href="{{ route('products.edit', $product) }}" class="btn-soft">
-                <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
-                Edit Product
-            </a>
-        @endcan
+        <div class="flex items-center gap-2">
+            <a href="{{ route('products.index') }}" class="btn-soft">Back to Products</a>
+            @can('manage-products')
+                <a href="{{ route('products.edit', $product) }}" class="btn-soft">
+                    <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                    Edit Product
+                </a>
+                <form method="POST" action="{{ route('products.destroy', $product) }}" data-confirm="Delete this product? This cannot be undone.">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit" class="btn !bg-red-50 text-red-700 hover:!bg-red-100">Delete Product</button>
+                </form>
+            @endcan
+        </div>
     </div>
 </div>
 
 <!-- Stats Row -->
-<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+<div class="grid grid-cols-1 gap-4 mb-8 md:grid-cols-2 xl:grid-cols-3">
+    <div class="card p-5 relative overflow-hidden">
+        <div class="absolute right-0 top-0 -mt-4 -mr-4 h-24 w-24 rounded-full bg-emerald-50 opacity-50"></div>
+        <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 relative z-10">Total Stock In</p>
+        <h3 class="text-2xl font-bold text-emerald-600 relative z-10">+{{ number_format($totalStockIn, 3) }} <span class="text-sm font-normal text-slate-500">{{ $product->baseUnit->symbol }}</span></h3>
+    </div>
+
+    <div class="card p-5 relative overflow-hidden">
+        <div class="absolute right-0 top-0 -mt-4 -mr-4 h-24 w-24 rounded-full bg-red-50 opacity-50"></div>
+        <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 relative z-10">Total Stock Out</p>
+        <h3 class="text-2xl font-bold text-red-600 relative z-10">-{{ number_format($totalStockOut, 3) }} <span class="text-sm font-normal text-slate-500">{{ $product->baseUnit->symbol }}</span></h3>
+    </div>
+
+    <div class="card p-5 relative overflow-hidden">
+        <div class="absolute right-0 top-0 -mt-4 -mr-4 h-24 w-24 rounded-full bg-amber-50 opacity-50"></div>
+        <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 relative z-10">Current Main Stock</p>
+        <h3 class="text-2xl font-bold text-slate-800 relative z-10">{{ number_format($product->balances->where('inventory_type','main')->sum('quantity'), 3) }} <span class="text-sm font-normal text-slate-500">{{ $product->baseUnit->symbol }}</span></h3>
+    </div>
+
+    <div class="card p-5 relative overflow-hidden">
+        <div class="absolute right-0 top-0 -mt-4 -mr-4 h-24 w-24 rounded-full bg-purple-50 opacity-50"></div>
+        <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 relative z-10">Current Remnant Stock</p>
+        <h3 class="text-2xl font-bold text-slate-800 relative z-10">{{ number_format($product->balances->where('inventory_type','remnant')->sum('quantity'), 3) }} <span class="text-sm font-normal text-slate-500">{{ $product->baseUnit->symbol }}</span></h3>
+    </div>
+
     <div class="card p-5 relative overflow-hidden">
         <div class="absolute right-0 top-0 -mt-4 -mr-4 h-24 w-24 rounded-full bg-blue-50 opacity-50"></div>
         <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 relative z-10">Total Sales</p>
         <h3 class="text-2xl font-bold text-slate-800 relative z-10">Rs. {{ number_format($totalSales, 2) }}</h3>
     </div>
-    
-    <div class="card p-5 relative overflow-hidden">
-        <div class="absolute right-0 top-0 -mt-4 -mr-4 h-24 w-24 rounded-full bg-emerald-50 opacity-50"></div>
-        <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 relative z-10">Total Profit</p>
-        <h3 class="text-2xl font-bold text-emerald-600 relative z-10">Rs. {{ number_format($totalProfit, 2) }}</h3>
-    </div>
-    
-    <div class="card p-5 relative overflow-hidden">
-        <div class="absolute right-0 top-0 -mt-4 -mr-4 h-24 w-24 rounded-full bg-amber-50 opacity-50"></div>
-        <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 relative z-10">Total Stock (Main)</p>
-        <h3 class="text-2xl font-bold text-slate-800 relative z-10">{{ number_format($product->balances->where('inventory_type','main')->sum('quantity'), 3) }} <span class="text-sm font-normal text-slate-500">{{ $product->baseUnit->symbol }}</span></h3>
-    </div>
-    
+
     <div class="card p-5 relative overflow-hidden">
         <div class="absolute right-0 top-0 -mt-4 -mr-4 h-24 w-24 rounded-full bg-purple-50 opacity-50"></div>
         <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 relative z-10">Average Cost</p>
-        <h3 class="text-2xl font-bold text-slate-800 relative z-10">Rs. {{ number_format($product->average_cost, 2) }}</h3>
+        @can('view-cost')
+            <h3 class="text-2xl font-bold text-slate-800 relative z-10">Rs. {{ number_format($product->average_cost, 2) }}</h3>
+        @else
+            <h3 class="text-lg font-semibold text-slate-300 relative z-10">Restricted</h3>
+        @endcan
     </div>
 </div>
 
@@ -102,7 +126,7 @@
                 <dl class="space-y-3 text-sm">
                     <div class="flex justify-between border-b border-slate-100 pb-2">
                         <dt class="text-slate-500">Brand</dt>
-                        <dd class="font-medium text-slate-800">{{ $product->brand ?: '—' }}</dd>
+                        <dd class="font-medium text-slate-800">{{ $product->brand?->name ?? '—' }}</dd>
                     </div>
                     <div class="flex justify-between border-b border-slate-100 pb-2">
                         <dt class="text-slate-500">Color</dt>
@@ -137,7 +161,10 @@
                     <div class="grid h-8 w-8 place-items-center rounded-lg bg-indigo-50 text-indigo-500">
                         <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
                     </div>
-                    <h3 class="font-bold text-slate-800">Inventory Movements (In & Out)</h3>
+                    <div>
+                        <h3 class="font-bold text-slate-800">Stock In & Out History</h3>
+                        <p class="text-xs text-slate-500">Every quantity is shown in the base stock unit ({{ $product->baseUnit->symbol }}).</p>
+                    </div>
                 </div>
             </div>
             
@@ -146,10 +173,11 @@
                     <thead class="bg-slate-50/50 border-b border-slate-100 text-slate-500 text-xs tracking-wider">
                         <tr>
                             <th class="px-6 py-3 font-semibold uppercase">Date</th>
-                            <th class="px-6 py-3 font-semibold uppercase">Type</th>
+                            <th class="px-6 py-3 font-semibold uppercase">Movement</th>
+                            <th class="px-6 py-3 font-semibold uppercase">Inventory / Store</th>
                             <th class="px-6 py-3 font-semibold uppercase">Reference</th>
-                            <th class="px-6 py-3 font-semibold text-right uppercase">In</th>
-                            <th class="px-6 py-3 font-semibold text-right uppercase">Out</th>
+                            <th class="px-6 py-3 font-semibold text-right uppercase">Stock In</th>
+                            <th class="px-6 py-3 font-semibold text-right uppercase">Stock Out</th>
                             <th class="px-6 py-3 font-semibold text-right uppercase">Balance</th>
                         </tr>
                     </thead>
@@ -161,17 +189,13 @@
                                 <div class="text-xs text-slate-400">{{ $m->created_at->format('h:i A') }}</div>
                             </td>
                             <td class="px-6 py-3.5">
-                                @if($m->type === 'purchase')
-                                    <span class="inline-flex items-center gap-1.5 px-2 py-1 rounded bg-blue-50 text-blue-700 text-xs font-medium"><svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path></svg> Purchase</span>
-                                @elseif($m->type === 'sale')
-                                    <span class="inline-flex items-center gap-1.5 px-2 py-1 rounded bg-emerald-50 text-emerald-700 text-xs font-medium"><svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> Sale</span>
-                                @elseif(str_contains($m->type, 'transfer'))
-                                    <span class="inline-flex items-center gap-1.5 px-2 py-1 rounded bg-indigo-50 text-indigo-700 text-xs font-medium"><svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg> Transfer</span>
-                                @elseif(str_contains($m->type, 'adjust'))
-                                    <span class="inline-flex items-center gap-1.5 px-2 py-1 rounded bg-amber-50 text-amber-700 text-xs font-medium"><svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg> Adjustment</span>
-                                @else
-                                    <span class="inline-flex items-center gap-1.5 px-2 py-1 rounded bg-slate-100 text-slate-700 text-xs font-medium">{{ ucfirst($m->type) }}</span>
-                                @endif
+                                <span class="inline-flex items-center rounded px-2 py-1 text-xs font-medium {{ $m->quantity_in > 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700' }}">
+                                    {{ str($m->movement_type)->replace('_', ' ')->title() }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-3.5 whitespace-nowrap">
+                                <div class="font-medium text-slate-700">{{ ucfirst($m->inventory_type) }}</div>
+                                <div class="text-xs text-slate-400">{{ $m->store?->name ?? 'Unknown store' }}</div>
                             </td>
                             <td class="px-6 py-3.5">
                                 @if($m->reference_type === \App\Models\Purchase::class)
@@ -179,22 +203,23 @@
                                 @elseif($m->reference_type === \App\Models\Sale::class)
                                     <a href="{{ route('sales.show', $m->reference_id) }}" class="text-teal hover:underline font-medium">Sale #{{ $m->reference_id }}</a>
                                 @else
-                                    <span class="text-slate-500">{{ $m->description ?: 'Manual/System' }}</span>
+                                    <span class="text-slate-500">{{ $m->notes ?: 'Manual / System' }}</span>
                                 @endif
+                                <div class="mt-1 text-xs text-slate-400">{{ $m->user?->name ?? 'System' }}</div>
                             </td>
                             <td class="px-6 py-3.5 text-right font-medium text-emerald-600">
-                                {{ $m->quantity_in > 0 ? '+'.(float)$m->quantity_in : '-' }}
+                                {{ $m->quantity_in > 0 ? '+'.number_format((float) $m->quantity_in, 3).' '.$product->baseUnit->symbol : '—' }}
                             </td>
                             <td class="px-6 py-3.5 text-right font-medium text-red-500">
-                                {{ $m->quantity_out > 0 ? '-'.(float)$m->quantity_out : '-' }}
+                                {{ $m->quantity_out > 0 ? '-'.number_format((float) $m->quantity_out, 3).' '.$product->baseUnit->symbol : '—' }}
                             </td>
                             <td class="px-6 py-3.5 text-right font-bold text-slate-800">
-                                {{ (float)$m->balance_after }}
+                                {{ number_format((float) $m->balance_after, 3) }} {{ $product->baseUnit->symbol }}
                             </td>
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="6" class="px-6 py-12 text-center text-slate-400">
+                            <td colspan="7" class="px-6 py-12 text-center text-slate-400">
                                 <div class="grid h-12 w-12 place-items-center rounded-full bg-slate-50 text-slate-300 mx-auto mb-3">
                                     <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path></svg>
                                 </div>
