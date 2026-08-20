@@ -38,6 +38,11 @@ class Product extends Model
         return $this->belongsTo(Unit::class, 'default_selling_unit_id');
     }
 
+    public function defaultSupplier()
+    {
+        return $this->belongsTo(Supplier::class, 'default_supplier_id');
+    }
+
     public function units()
     {
         return $this->belongsToMany(Unit::class, 'product_units')->using(ProductUnit::class)->withPivot(['id', 'base_quantity', 'unit_quantity', 'conversion_rate', 'can_purchase', 'can_sell'])->withTimestamps();

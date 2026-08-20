@@ -29,7 +29,9 @@ class PurchaseController extends Controller
             'stores' => Store::where('active', 1)->get(), 
             'products' => Product::with('productUnits.unit', 'suppliers')->where('active', 1)->get(),
             'methods' => $methods,
-            'eligibleCheques' => $eligibleCheques
+            'eligibleCheques' => $eligibleCheques,
+            'categories' => \App\Models\Category::where('active', 1)->get(),
+            'baseUnits' => \App\Models\Unit::where('active', 1)->get()
         ]);
     }
 

@@ -3,5 +3,145 @@
     $catalog=$products->map(fn($p)=>['id'=>$p->id,'name'=>$p->name,'sku'=>$p->sku,'units'=>$p->productUnits->where('can_purchase',true)->map(fn($u)=>['id'=>$u->unit_id,'name'=>$u->unit->name,'symbol'=>$u->unit->symbol,'rate'=>(float)$u->conversion_rate])->values(),'suppliers'=>$p->suppliers->map(fn($s)=>['id'=>$s->id,'last_cost'=>(float)$s->pivot->last_cost])->values()])->values(); 
     $chequesList = $eligibleCheques->map(fn($c)=>['id'=>$c->id, 'amount'=>(float)$c->remaining_amount])->values();
 @endphp
-<div class="mb-6"><a class="text-sm text-slate-500" href="{{ route('purchases.index') }}">← Purchases</a><h1 class="mt-2 font-serif text-3xl text-ink">Receive a purchase</h1><p class="text-sm text-slate-500">Landed cost is allocated by invoice line value; supplier due excludes extra costs.</p></div><form method="post" action="{{ route('purchases.store') }}" x-data='purchaseForm(@json($catalog), @json($methods), @json($chequesList))'>@csrf<section class="card p-6"><div class="grid gap-5 md:grid-cols-2 xl:grid-cols-4"><div><label>Supplier *</label><select class="w-full" name="supplier_id" x-model.number="supplier" required x-init="initSelect($el)"><option value="">Select supplier</option>@foreach($suppliers as $s)<option value="{{ $s->id }}">{{ $s->name }}</option>@endforeach</select></div><div><label>Store *</label><select class="w-full" name="store_id" required>@foreach($stores as $s)<option value="{{ $s->id }}">{{ $s->name }}</option>@endforeach</select></div><div><label>Supplier invoice no.</label><input class="w-full" name="supplier_invoice_no"></div><div><label>Reference</label><input class="w-full" name="reference_no"></div><div><label>Purchase date *</label><input class="w-full" type="date" name="purchase_date" value="{{ now()->toDateString() }}" required></div><div><label>Due date</label><input class="w-full" type="date" name="due_date"></div><div><label>Extra / landed cost</label><input class="w-full" type="number" min="0" step="0.01" name="extra_cost_total" x-model.number="extra"></div><div><label>Notes</label><input class="w-full" name="notes"></div></div></section><section class="card mt-5 overflow-hidden"><div class="flex items-center justify-between p-5"><div><h2 class="font-serif text-xl">Purchase lines</h2><p class="text-xs text-slate-400">Quantities are converted to each product’s base unit.</p></div><button type="button" class="btn-soft" @click="add()">+ Add line</button></div><div class="overflow-x-auto"><table><thead><tr><th>Product</th><th>Purchase unit</th><th>Qty</th><th>Supplier unit cost</th><th>Discount</th><th>Tax</th><th>Base preview</th><th>Total</th><th></th></tr></thead><tbody><template x-for="(row,i) in rows" :key="i"><tr><td><select class="min-w-56" :name="fieldName('items', i, 'product_id')" x-model.number="row.product_id" @change="productChanged(row)" x-init="initProductSelect($el)" required><option value="">Select product</option><template x-for="p in products"><option :value="p.id" x-text="productLabel(p)"></option></template></select></td><td><select class="min-w-32" :name="fieldName('items', i, 'unit_id')" x-model.number="row.unit_id" required><template x-for="u in units(row)"><option :value="u.id" x-text="u.symbol"></option></template></select></td><td><input class="w-28" type="number" min="0.001" step="0.001" :name="fieldName('items', i, 'quantity')" x-model.number="row.quantity" required></td><td><input class="w-36" type="number" min="0" step="0.0001" :name="fieldName('items', i, 'supplier_unit_cost')" x-model.number="row.cost" required></td><td><input class="w-28" type="number" min="0" step="0.01" :name="fieldName('items', i, 'discount_amount')" x-model.number="row.discount"></td><td><input class="w-28" type="number" min="0" step="0.01" :name="fieldName('items', i, 'tax_amount')" x-model.number="row.tax"></td><td class="text-xs" x-text="baseLabel(row)"></td><td class="font-semibold" x-text="totalLabel(row)"></td><td><button type="button" class="text-red-500" @click="rows.splice(i,1)" :disabled="rows.length===1">×</button></td></tr></template></tbody></table></div><div class="flex justify-end border-t border-slate-100 p-5"><div class="w-80 space-y-2 text-sm"><div class="flex justify-between"><span>Supplier invoice total</span><strong>Rs. <span x-text="money(supplierTotal)"></span></strong></div><div class="flex justify-between"><span>Extra cost</span><strong>Rs. <span x-text="money(extra)"></span></strong></div><div class="flex justify-between border-t pt-2 text-base"><span>Inventory landed value</span><strong>Rs. <span x-text="money(landedValue)"></span></strong></div></div></div></section><section class="card mt-5 overflow-hidden"><div class="flex items-center justify-between p-5"><div><h2 class="font-serif text-xl">Payments (Optional)</h2><p class="text-xs text-slate-400">Record payments against this invoice.</p></div><button type="button" class="btn-soft" @click="addPayment()">+ Add payment</button></div><div class="overflow-x-auto"><table class="w-full"><thead><tr><th class="w-1/4">Method</th><th class="w-1/6">Amount</th><th>Reference / Details</th><th class="w-10"></th></tr></thead><tbody><template x-for="(pay,i) in payments" :key="i"><tr><td class="align-top pt-2"><select class="w-full" :name="fieldName('payments', i, 'payment_method_id')" x-model.number="pay.method_id" @change="methodChanged(pay, $event)" required><option value="">Select method</option>@foreach($methods as $m)<option value="{{ $m->id }}">{{ $m->name }}</option>@endforeach</select></td><td class="align-top pt-2"><input class="w-full" type="number" min="0.01" step="0.01" :name="fieldName('payments', i, 'amount')" x-model.number="pay.amount" required></td><td class="align-top pt-2"><div x-show="!isCheque(pay.method_id)"><input class="w-full" :name="fieldName('payments', i, 'reference')" x-model="pay.reference" placeholder="Reference (Optional)"></div><div x-show="isOwnCheque(pay.method_id)" class="grid grid-cols-2 gap-2"><input class="w-full" :name="fieldName('payments', i, 'cheque_number')" x-model="pay.cheque_number" placeholder="Cheque number" :required="isOwnCheque(pay.method_id)"><input class="w-full" :name="fieldName('payments', i, 'bank')" x-model="pay.bank" placeholder="Bank" :required="isOwnCheque(pay.method_id)"><input class="w-full" :name="fieldName('payments', i, 'business_bank_account')" x-model="pay.business_bank_account" placeholder="Business Account" :required="isOwnCheque(pay.method_id)"><input class="w-full" type="date" :name="fieldName('payments', i, 'cheque_date')" x-model="pay.cheque_date" :required="isOwnCheque(pay.method_id)"></div><div x-show="isEndorsedCheque(pay.method_id)"><select class="w-full min-w-64" :name="fieldName('payments', i, 'cheque_id')" x-model.number="pay.cheque_id" :required="isEndorsedCheque(pay.method_id)"><option value="">Select customer cheque</option>@foreach($eligibleCheques as $c)<option value="{{ $c->id }}">{{ $c->cheque_number }} - {{ $c->bank }} ({{ $c->customer?->name ?? 'Unknown' }}) - Rs.{{ (float) $c->remaining_amount }}</option>@endforeach</select></div></td><td class="align-top pt-2 text-right"><button type="button" class="text-red-500 hover:text-red-700" @click="payments.splice(i,1)">×</button></td></tr></template></tbody></table></div><div class="flex justify-end border-t border-slate-100 p-5"><div class="w-80 space-y-2 text-sm"><div class="flex justify-between"><span>Payments Total</span><strong>Rs. <span x-text="money(paymentsTotal)"></span></strong></div><div class="flex justify-between border-t pt-2 text-base mb-2" :class="dueAmount < 0 ? 'text-red-500' : ''"><span>Balance Due</span><strong>Rs. <span x-text="money(dueAmount)"></span></strong></div><div class="flex justify-between text-xs text-slate-500"><span>Actually paid</span><strong>Rs. <span x-text="money(actuallyPaid)"></span></strong></div><div class="flex justify-between text-xs text-slate-500 pt-1"><span>Payment on hold</span><strong>Rs. <span x-text="money(paymentOnHold)"></span></strong></div></div></div></section><div class="mt-6 flex justify-end gap-3"><a class="btn-soft" href="{{ route('purchases.index') }}">Cancel</a><button class="btn-teal">Receive & update stock</button></div></form>
-@push('scripts')<script>function purchaseForm(products,methods,chequesList){return{products,methods,chequesList,extra:0,supplier:'',rows:[{product_id:'',unit_id:'',quantity:1,cost:0,discount:0,tax:0}],payments:[],fieldName(group,index,field){return group+'['+index+']['+field+']'},productLabel(product){return product.name+' · '+product.sku},baseLabel(row){return this.base(row).toFixed(3)+' base'},totalLabel(row){return 'Rs. '+this.money(this.total(row))},get landedValue(){return this.supplierTotal+(Number(this.extra)||0)},initSelect(element){if(!element.tomselect)new TomSelect(element,{dropdownParent:'body'})},initProductSelect(element){this.$nextTick(()=>{if(!element.tomselect)new TomSelect(element,{maxOptions:50,dropdownParent:'body'})})},add(){this.rows.push({product_id:'',unit_id:'',quantity:1,cost:0,discount:0,tax:0})},addPayment(){this.payments.push({method_id:'',amount:0,reference:'',cheque_number:'',bank:'',business_bank_account:'',cheque_date:'',cheque_id:''})},methodChanged(pay, e){if(this.isEndorsedCheque(pay.method_id)){this.$nextTick(()=>{let el = e.target.closest('tr').querySelector('[name*="[cheque_id]"]'); if(el && !el.tomselect){new TomSelect(el, {dropdownParent: 'body', onChange: (val) => { pay.cheque_id = val; let found = this.chequesList.find(c => c.id == val); if(found) { pay.amount = found.amount; } }});}});}},product(row){return this.products.find(p=>p.id==row.product_id)},units(row){return this.product(row)?.units||[]},productChanged(row){row.unit_id=this.units(row)[0]?.id||'';let p=this.product(row);if(p&&this.supplier){let sup=p.suppliers.find(s=>s.id==this.supplier);if(sup)row.cost=sup.last_cost;}},base(row){let u=this.units(row).find(u=>u.id==row.unit_id);return (Number(row.quantity)||0)*(Number(u?.rate)||0)},total(row){return Math.max(0,(Number(row.quantity)||0)*(Number(row.cost)||0)-(Number(row.discount)||0)+(Number(row.tax)||0))},get supplierTotal(){return this.rows.reduce((s,r)=>s+this.total(r),0)},getMethodCode(id){return this.methods.find(m=>m.id==id)?.code||''},isOwnCheque(id){return this.getMethodCode(id)==='own_cheque'},isEndorsedCheque(id){return this.getMethodCode(id)==='endorsed_cheque'},isCheque(id){let c=this.getMethodCode(id);return c==='own_cheque'||c==='endorsed_cheque'||c==='cheque'},get paymentsTotal(){return this.payments.reduce((s,p)=>s+(Number(p.amount)||0),0)},get actuallyPaid(){return this.payments.reduce((s,p)=>s+(this.isCheque(p.method_id)?0:(Number(p.amount)||0)),0)},get paymentOnHold(){return this.payments.reduce((s,p)=>s+(this.isCheque(p.method_id)?(Number(p.amount)||0):0),0)},get dueAmount(){return this.supplierTotal-this.paymentsTotal},money(v){return Number(v||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}}}</script>@endpush @endsection
+<div class="mb-6"><a class="text-sm text-slate-500" href="{{ route('purchases.index') }}">← Purchases</a><h1 class="mt-2 font-serif text-3xl text-ink">Receive a purchase</h1><p class="text-sm text-slate-500">Landed cost is allocated by invoice line value; supplier due excludes extra costs.</p></div><form method="post" action="{{ route('purchases.store') }}" x-data='purchaseForm(@json($catalog), @json($methods), @json($chequesList))'>@csrf<section class="card p-6"><div class="grid gap-5 md:grid-cols-2 xl:grid-cols-4"><div><label class="flex justify-between items-center">Supplier *<button type="button" class="text-teal-600 hover:text-teal-700 text-xs font-semibold" @click="showSupplierModal = true">+ Add new</button></label><select class="w-full" name="supplier_id" x-model.number="supplier" required x-init="initSelect($el)"><option value="">Select supplier</option>@foreach($suppliers as $s)<option value="{{ $s->id }}">{{ $s->name }}</option>@endforeach</select></div><div><label>Store *</label><select class="w-full" name="store_id" required>@foreach($stores as $s)<option value="{{ $s->id }}">{{ $s->name }}</option>@endforeach</select></div><div><label>Supplier invoice no.</label><input class="w-full" name="supplier_invoice_no"></div><div><label>Reference</label><input class="w-full" name="reference_no"></div><div><label>Purchase date *</label><input class="w-full" type="date" name="purchase_date" value="{{ now()->toDateString() }}" required></div><div><label>Due date</label><input class="w-full" type="date" name="due_date"></div><div><label>Extra / landed cost</label><input class="w-full" type="number" min="0" step="0.01" name="extra_cost_total" x-model.number="extra"></div><div><label>Notes</label><input class="w-full" name="notes"></div></div></section><section class="card mt-5 overflow-hidden"><div class="flex items-center justify-between p-5"><div><h2 class="font-serif text-xl">Purchase lines</h2><p class="text-xs text-slate-400">Quantities are converted to each product’s base unit.</p></div><div class="space-x-2"><button type="button" class="btn-soft" @click="showProductModal = true">+ Add product</button><button type="button" class="btn-soft" @click="add()">+ Add line</button></div></div><div class="overflow-x-auto"><table><thead><tr><th>Product</th><th>Purchase unit</th><th>Qty</th><th>Supplier unit cost</th><th>Discount</th><th>Base preview</th><th>Total</th><th></th></tr></thead><tbody><template x-for="(row,i) in rows" :key="i"><tr><td><select class="min-w-56" :name="fieldName('items', i, 'product_id')" x-model.number="row.product_id" @change="productChanged(row)" x-init="initProductSelect($el)" required><option value="">Select product</option><template x-for="p in products"><option :value="p.id" x-text="productLabel(p)"></option></template></select></td><td><select class="min-w-32" :name="fieldName('items', i, 'unit_id')" x-model.number="row.unit_id" required><template x-for="u in units(row)"><option :value="u.id" x-text="u.symbol"></option></template></select></td><td><input class="w-28" type="number" min="0.001" step="0.001" :name="fieldName('items', i, 'quantity')" x-model.number="row.quantity" required></td><td><input class="w-36" type="number" min="0" step="0.0001" :name="fieldName('items', i, 'supplier_unit_cost')" x-model.number="row.cost" required></td><td><input class="w-28" type="number" min="0" step="0.01" :name="fieldName('items', i, 'discount_amount')" x-model.number="row.discount"></td><td class="text-xs" x-text="baseLabel(row)"></td><td class="font-semibold" x-text="totalLabel(row)"></td><td><button type="button" class="text-red-500" @click="rows.splice(i,1)" :disabled="rows.length===1">×</button></td></tr></template></tbody></table></div><div class="flex justify-end border-t border-slate-100 p-5"><div class="w-80 space-y-2 text-sm"><div class="flex justify-between"><span>Supplier invoice total</span><strong>Rs. <span x-text="money(supplierTotal)"></span></strong></div><div class="flex justify-between"><span>Extra cost</span><strong>Rs. <span x-text="money(extra)"></span></strong></div><div class="flex justify-between border-t pt-2 text-base"><span>Inventory landed value</span><strong>Rs. <span x-text="money(landedValue)"></span></strong></div></div></div></section><section class="card mt-5 overflow-hidden"><div class="flex items-center justify-between p-5"><div><h2 class="font-serif text-xl">Payments (Optional)</h2><p class="text-xs text-slate-400">Record payments against this invoice.</p></div><button type="button" class="btn-soft" @click="addPayment()">+ Add payment</button></div><div class="overflow-x-auto"><table class="w-full"><thead><tr><th class="w-1/4">Method</th><th class="w-1/6">Amount</th><th>Reference / Details</th><th class="w-10"></th></tr></thead><tbody><template x-for="(pay,i) in payments" :key="i"><tr><td class="align-top pt-2"><select class="w-full" :name="fieldName('payments', i, 'payment_method_id')" x-model.number="pay.method_id" @change="methodChanged(pay, $event)" required><option value="">Select method</option>@foreach($methods as $m)<option value="{{ $m->id }}">{{ $m->name }}</option>@endforeach</select></td><td class="align-top pt-2"><input class="w-full" type="number" min="0.01" step="0.01" :name="fieldName('payments', i, 'amount')" x-model.number="pay.amount" required></td><td class="align-top pt-2"><div x-show="!isCheque(pay.method_id)"><input class="w-full" :name="fieldName('payments', i, 'reference')" x-model="pay.reference" placeholder="Reference (Optional)"></div><div x-show="isOwnCheque(pay.method_id)" class="grid grid-cols-2 gap-2"><input class="w-full" :name="fieldName('payments', i, 'cheque_number')" x-model="pay.cheque_number" placeholder="Cheque number" :required="isOwnCheque(pay.method_id)"><input class="w-full" :name="fieldName('payments', i, 'bank')" x-model="pay.bank" placeholder="Bank" :required="isOwnCheque(pay.method_id)"><input class="w-full" :name="fieldName('payments', i, 'business_bank_account')" x-model="pay.business_bank_account" placeholder="Business Account" :required="isOwnCheque(pay.method_id)"><input class="w-full" type="date" :name="fieldName('payments', i, 'cheque_date')" x-model="pay.cheque_date" :required="isOwnCheque(pay.method_id)"></div><div x-show="isEndorsedCheque(pay.method_id)"><select class="w-full min-w-64" :name="fieldName('payments', i, 'cheque_id')" x-model.number="pay.cheque_id" :required="isEndorsedCheque(pay.method_id)"><option value="">Select customer cheque</option>@foreach($eligibleCheques as $c)<option value="{{ $c->id }}">{{ $c->cheque_number }} - {{ $c->bank }} ({{ $c->customer?->name ?? 'Unknown' }}) - Rs.{{ (float) $c->remaining_amount }}</option>@endforeach</select></div></td><td class="align-top pt-2 text-right"><button type="button" class="text-red-500 hover:text-red-700" @click="payments.splice(i,1)">×</button></td></tr></template></tbody></table></div><div class="flex justify-end border-t border-slate-100 p-5"><div class="w-80 space-y-2 text-sm"><div class="flex justify-between"><span>Payments Total</span><strong>Rs. <span x-text="money(paymentsTotal)"></span></strong></div><div class="flex justify-between border-t pt-2 text-base mb-2" :class="dueAmount < 0 ? 'text-red-500' : ''"><span>Balance Due</span><strong>Rs. <span x-text="money(dueAmount)"></span></strong></div><div class="flex justify-between text-xs text-slate-500"><span>Actually paid</span><strong>Rs. <span x-text="money(actuallyPaid)"></span></strong></div><div class="flex justify-between text-xs text-slate-500 pt-1"><span>Payment on hold</span><strong>Rs. <span x-text="money(paymentOnHold)"></span></strong></div></div></div></section><div class="mt-6 flex justify-end gap-3"><a class="btn-soft" href="{{ route('purchases.index') }}">Cancel</a><button class="btn-teal">Receive & update stock</button></div>
+
+<template x-teleport="body">
+    <div x-show="showSupplierModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm" style="display: none;">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-6" @click.outside="showSupplierModal = false">
+            <h3 class="text-xl font-serif mb-4">Add new supplier</h3>
+            <div class="space-y-4">
+                <div><label>Name *</label><input type="text" class="w-full" x-model="newSupplier.name" required></div>
+                <div><label>Company</label><input type="text" class="w-full" x-model="newSupplier.company"></div>
+                <div><label>Phone</label><input type="text" class="w-full" x-model="newSupplier.phone"></div>
+            </div>
+            <div class="mt-6 flex justify-end gap-3">
+                <button type="button" class="btn-soft" @click="showSupplierModal = false">Cancel</button>
+                <button type="button" class="btn-teal" @click="submitSupplier()" :disabled="isSubmitting">Save Supplier</button>
+            </div>
+        </div>
+    </div>
+</template>
+
+<template x-teleport="body">
+    <div x-show="showProductModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm" style="display: none;">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto" @click.outside="showProductModal = false">
+            <h3 class="text-xl font-serif mb-4">Add new product</h3>
+            <div class="grid grid-cols-2 gap-4">
+                <div><label>Product Name *</label><input type="text" class="w-full" x-model="newProduct.name" required></div>
+                <div><label>SKU / Barcode *</label><input type="text" class="w-full" x-model="newProduct.sku" required></div>
+                <div><label>Category</label><select class="w-full" x-model="newProduct.category_id"><option value="">Uncategorised</option>@foreach($categories as $c)<option value="{{$c->id}}">{{$c->name}}</option>@endforeach</select></div>
+                <div><label>Base Stock Unit *</label><select class="w-full" x-model="newProduct.base_unit_id"><option value="">Select</option>@foreach($baseUnits as $u)<option value="{{$u->id}}">{{$u->name}}</option>@endforeach</select></div>
+                <div><label>Default Supplier</label><select class="w-full" x-model="newProduct.default_supplier_id"><option value="">None</option>@foreach($suppliers as $s)<option value="{{$s->id}}">{{$s->name}}</option>@endforeach</select></div>
+                <div><label>Minimum Stock</label><input type="number" min="0" step="0.001" class="w-full" x-model="newProduct.minimum_stock"></div>
+                <div><label>Reorder Level</label><input type="number" min="0" step="0.001" class="w-full" x-model="newProduct.reorder_level"></div>
+                <div><label>Cost Price</label><input type="number" min="0" step="0.01" class="w-full" x-model="newProduct.average_cost"></div>
+                <div><label>Main Selling Price</label><input type="number" min="0" step="0.01" class="w-full" x-model="newProduct.main_selling_price"></div>
+                <div><label>Remnant Selling Price</label><input type="number" min="0" step="0.01" class="w-full" x-model="newProduct.remnant_selling_price"></div>
+            </div>
+            <div class="mt-6 flex justify-end gap-3">
+                <button type="button" class="btn-soft" @click="showProductModal = false">Cancel</button>
+                <button type="button" class="btn-teal" @click="submitProduct()" :disabled="isSubmitting">Save Product</button>
+            </div>
+        </div>
+    </div>
+</template>
+</form>
+@push('scripts')
+<script>
+function purchaseForm(products, methods, chequesList) {
+    return {
+        products, methods, chequesList, extra: 0, supplier: '', rows: [{ product_id: '', unit_id: '', quantity: 1, cost: 0, discount: 0 }], payments: [],
+        showSupplierModal: false, showProductModal: false, isSubmitting: false,
+        newSupplier: { name: '', company: '', phone: '' },
+        newProduct: { name: '', sku: '', category_id: '', base_unit_id: '', default_supplier_id: '', minimum_stock: '0', reorder_level: '0', average_cost: '0', main_selling_price: '0', remnant_selling_price: '0' },
+        fieldName(group, index, field) { return group + '[' + index + '][' + field + ']' },
+        productLabel(product) { return product.name + ' · ' + product.sku },
+        baseLabel(row) { return this.base(row).toFixed(3) + ' base' },
+        totalLabel(row) { return 'Rs. ' + this.money(this.total(row)) },
+        get landedValue() { return this.supplierTotal + (Number(this.extra) || 0) },
+        initSelect(element) { if (!element.tomselect) new TomSelect(element, { dropdownParent: 'body' }) },
+        initProductSelect(element) { this.$nextTick(() => { if (!element.tomselect) new TomSelect(element, { maxOptions: 50, dropdownParent: 'body' }) }) },
+        add() { this.rows.push({ product_id: '', unit_id: '', quantity: 1, cost: 0, discount: 0 }) },
+        addPayment() { this.payments.push({ method_id: '', amount: 0, reference: '', cheque_number: '', bank: '', business_bank_account: '', cheque_date: '', cheque_id: '' }) },
+        methodChanged(pay, e) {
+            if (this.isEndorsedCheque(pay.method_id)) {
+                this.$nextTick(() => {
+                    let el = e.target.closest('tr').querySelector('[name*="[cheque_id]"]');
+                    if (el && !el.tomselect) {
+                        new TomSelect(el, {
+                            dropdownParent: 'body', onChange: (val) => {
+                                pay.cheque_id = val; let found = this.chequesList.find(c => c.id == val); if (found) { pay.amount = found.amount; }
+                            }
+                        });
+                    }
+                });
+            }
+        },
+        product(row) { return this.products.find(p => p.id == row.product_id) },
+        units(row) { return this.product(row)?.units || [] },
+        productChanged(row) {
+            row.unit_id = this.units(row)[0]?.id || ''; let p = this.product(row);
+            if (p && this.supplier) { let sup = p.suppliers.find(s => s.id == this.supplier); if (sup) row.cost = sup.last_cost; }
+        },
+        base(row) { let u = this.units(row).find(u => u.id == row.unit_id); return (Number(row.quantity) || 0) * (Number(u?.rate) || 0) },
+        total(row) { return Math.max(0, (Number(row.quantity) || 0) * (Number(row.cost) || 0) - (Number(row.discount) || 0)) },
+        get supplierTotal() { return this.rows.reduce((s, r) => s + this.total(r), 0) },
+        getMethodCode(id) { return this.methods.find(m => m.id == id)?.code || '' },
+        isOwnCheque(id) { return this.getMethodCode(id) === 'own_cheque' },
+        isEndorsedCheque(id) { return this.getMethodCode(id) === 'endorsed_cheque' },
+        isCheque(id) { let c = this.getMethodCode(id); return c === 'own_cheque' || c === 'endorsed_cheque' || c === 'cheque' },
+        get paymentsTotal() { return this.payments.reduce((s, p) => s + (Number(p.amount) || 0), 0) },
+        get actuallyPaid() { return this.payments.reduce((s, p) => s + (this.isCheque(p.method_id) ? 0 : (Number(p.amount) || 0)), 0) },
+        get paymentOnHold() { return this.payments.reduce((s, p) => s + (this.isCheque(p.method_id) ? (Number(p.amount) || 0) : 0), 0) },
+        get dueAmount() { return this.supplierTotal - this.paymentsTotal },
+        money(v) { return Number(v || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
+        async submitSupplier() {
+            if(this.isSubmitting) return;
+            this.isSubmitting = true;
+            try {
+                let res = await fetch('{{ route("suppliers.store") }}', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
+                    body: JSON.stringify(this.newSupplier)
+                });
+                let data = await res.json();
+                if(data.success) {
+                    let s = data.supplier;
+                    let select = document.querySelector('select[name="supplier_id"]');
+                    if (select.tomselect) {
+                        select.tomselect.addOption({value: s.id, text: s.name});
+                        select.tomselect.setValue(s.id);
+                    }
+                    this.showSupplierModal = false;
+                    this.newSupplier = { name: '', company: '', phone: '' };
+                } else { alert('Error adding supplier'); }
+            } catch(e) { console.error(e); alert('Error adding supplier'); }
+            this.isSubmitting = false;
+        },
+        async submitProduct() {
+            if(this.isSubmitting) return;
+            this.isSubmitting = true;
+            try {
+                let res = await fetch('{{ route("products.store") }}', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
+                    body: JSON.stringify(this.newProduct)
+                });
+                let data = await res.json();
+                if(data.success) {
+                    this.products.push(data.product);
+                    this.showProductModal = false;
+                    this.newProduct = { name: '', sku: '', category_id: '', base_unit_id: '', default_supplier_id: '', minimum_stock: '0', reorder_level: '0', average_cost: '0', main_selling_price: '0', remnant_selling_price: '0' };
+                    document.querySelectorAll('select[name*="[product_id]"]').forEach(select => {
+                        if(select.tomselect) {
+                            select.tomselect.addOption({value: data.product.id, text: this.productLabel(data.product)});
+                        }
+                    });
+                } else { alert('Error adding product (Check SKU/validation)'); }
+            } catch(e) { console.error(e); alert('Error adding product'); }
+            this.isSubmitting = false;
+        }
+    }
+}
+</script>
+@endpush @endsection

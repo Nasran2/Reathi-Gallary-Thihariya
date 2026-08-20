@@ -32,7 +32,8 @@ class ProductController extends Controller
     {
         $this->authorize('manage-products');
         $data = $this->validated($r);
-        DB::transaction(function () use ($data, $r, $inventoryService) {
+        $product = null;
+        DB::transaction(function () use ($data, $r, $inventoryService, &$product) {
             $units = $data['units'] ?? [];
             $openingStock = (float) ($data['opening_stock'] ?? 0);
             unset($data['units'], $data['opening_stock']);
@@ -44,6 +45,21 @@ class ProductController extends Controller
                 $inventoryService->move($product, $storeId, 'main', 'stock_adjustment', $openingStock, 0, $product->average_cost, null, $r->user()->id, 'Opening Stock');
             }
         });
+
+        if ($r->wantsJson()) {
+            if ($product->default_supplier_id) {
+                $product->suppliers()->syncWithoutDetaching([$product->default_supplier_id => ['last_cost' => $product->average_cost]]);
+                $product->load('suppliers');
+            }
+            $catalogItem = [
+                'id' => $product->id,
+                'name' => $product->name,
+                'sku' => $product->sku,
+                'units' => $product->productUnits->where('can_purchase', true)->map(fn($u) => ['id' => $u->unit_id, 'name' => $u->unit->name, 'symbol' => $u->unit->symbol, 'rate' => (float)$u->conversion_rate])->values(),
+                'suppliers' => $product->suppliers->map(fn($s) => ['id' => $s->id, 'last_cost' => (float)$s->pivot->last_cost])->values()
+            ];
+            return response()->json(['success' => true, 'product' => $catalogItem]);
+        }
 
         return redirect()->route('products.index')->with('success', 'Product created.');
     }

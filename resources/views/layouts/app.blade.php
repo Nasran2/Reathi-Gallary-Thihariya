@@ -50,6 +50,7 @@ $nav = [
         ['Sales Report', 'reports.sales'],
         ['Profit/Loss', 'reports.profit'],
         ['Stock Report', 'reports.stock'],
+        ['Low Stock Report', 'reports.low-stock'],
         ['Purchase Report', 'reports.purchases'],
         ['Expense Report', 'reports.expenses'],
         ['Due Bills Report', 'reports.due-bills'],

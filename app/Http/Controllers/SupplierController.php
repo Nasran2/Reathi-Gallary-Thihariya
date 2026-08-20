@@ -30,7 +30,11 @@ class SupplierController extends Controller
 
     public function store(Request $r)
     {
-        Supplier::create($this->validated($r) + ['active' => true]);
+        $supplier = Supplier::create($this->validated($r) + ['active' => true]);
+
+        if ($r->wantsJson()) {
+            return response()->json(['success' => true, 'supplier' => $supplier]);
+        }
 
         return back()->with('success', 'Supplier added.');
     }

@@ -46,6 +46,28 @@ class ReportController extends Controller
         return view($view, $data);
     }
 
+    public function lowStock(Request $r)
+    {
+        $this->authorize('view-reports');
+
+        $query = Product::with(['defaultSupplier', 'baseUnit'])
+            ->withSum('balances as total_stock', 'quantity')
+            ->havingRaw('COALESCE(total_stock, 0) <= minimum_stock OR COALESCE(total_stock, 0) <= reorder_level')
+            ->where('active', 1);
+
+        if ($r->filled('supplier_id')) {
+            $query->where('default_supplier_id', $r->supplier_id);
+        }
+
+        $products = $query->paginate(30)->withQueryString();
+        $suppliers = Supplier::where('active', 1)->orderBy('name')->get();
+
+        return $this->render($r, 'reports.low-stock', [
+            'products' => $products,
+            'suppliers' => $suppliers,
+        ], 'Low Stock Report', 'landscape');
+    }
+
     public function sales(Request $r)
     {
         $this->authorize('view-reports');
