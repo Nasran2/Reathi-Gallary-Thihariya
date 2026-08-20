@@ -15,9 +15,30 @@ use Illuminate\Http\Request;
 
 class PurchaseController extends Controller
 {
-    public function index()
+    public function index(Request $r)
     {
-        return view('purchases.index', ['purchases' => Purchase::with('supplier')->latest()->paginate(20)]);
+        $q = Purchase::with('supplier')->latest('purchase_date')->latest('id');
+
+        if ($r->filter) {
+            $now = now();
+            if ($r->filter === 'today') $q->whereDate('purchase_date', $now->toDateString());
+            elseif ($r->filter === 'yesterday') $q->whereDate('purchase_date', $now->copy()->subDay()->toDateString());
+            elseif ($r->filter === 'this_week') $q->whereBetween('purchase_date', [$now->copy()->startOfWeek()->toDateString(), $now->copy()->endOfWeek()->toDateString()]);
+            elseif ($r->filter === 'last_week') $q->whereBetween('purchase_date', [$now->copy()->subWeek()->startOfWeek()->toDateString(), $now->copy()->subWeek()->endOfWeek()->toDateString()]);
+            elseif ($r->filter === 'this_month') $q->whereBetween('purchase_date', [$now->copy()->startOfMonth()->toDateString(), $now->copy()->endOfMonth()->toDateString()]);
+            elseif ($r->filter === 'last_month') $q->whereBetween('purchase_date', [$now->copy()->subMonth()->startOfMonth()->toDateString(), $now->copy()->subMonth()->endOfMonth()->toDateString()]);
+            elseif ($r->filter === 'this_year') $q->whereBetween('purchase_date', [$now->copy()->startOfYear()->toDateString(), $now->copy()->endOfYear()->toDateString()]);
+            elseif ($r->filter === 'custom' && $r->start && $r->end) $q->whereBetween('purchase_date', [$r->start, $r->end]);
+        }
+        
+        if ($r->supplier_id) {
+            $q->where('supplier_id', $r->supplier_id);
+        }
+
+        return view('purchases.index', [
+            'purchases' => $q->paginate(20)->withQueryString(),
+            'suppliers' => Supplier::orderBy('name')->get()
+        ]);
     }
 
     public function create()

@@ -37,6 +37,9 @@ Route::middleware('auth')->group(function () {
     Route::post('/pos/checkout', [PosController::class, 'checkout'])->name('pos.checkout');
     Route::resource('products', ProductController::class);
     Route::get('/purchases/returns', [ReturnController::class, 'purchases'])->name('purchases.returns');
+    Route::get('/purchases/returns/create', [ReturnController::class, 'createPurchaseReturn'])->name('purchases.returns.create');
+    Route::get('/api/purchases/supplier/{supplier_id}', [ReturnController::class, 'getSupplierPurchases']);
+    Route::get('/api/purchases/items/{purchase_id}', [ReturnController::class, 'getPurchaseItems']);
     Route::post('/purchases/returns', [ReturnController::class, 'storePurchase'])->name('purchases.returns.store');
     Route::get('/sales/returns', [ReturnController::class, 'sales'])->name('sales.returns');
     Route::post('/sales/returns', [ReturnController::class, 'storeSale'])->name('sales.returns.store');
