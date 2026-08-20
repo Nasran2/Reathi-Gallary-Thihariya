@@ -19,15 +19,23 @@ class ReportController extends Controller
 {
     private function dates(Request $r): array
     {
+        if ($r->has('from') && !$r->filled('from') && !$r->filled('to')) {
+            return [null, null];
+        }
         return [$r->date('from') ?? now()->startOfDay(), $r->date('to') ?? now()->endOfDay()];
     }
 
     private function render(Request $r, string $view, array $data, string $pdfTitle, string $orientation = 'portrait')
     {
         if ($r->get('export') === 'pdf') {
+            $period = 'All Time';
+            if (isset($data['from']) && isset($data['to']) && $data['from'] && $data['to']) {
+                $period = $data['from']->format('d M Y') . ' to ' . $data['to']->format('d M Y');
+            }
+
             $pdf = Pdf::loadView('reports.pdf', [
                 'title' => $pdfTitle,
-                'period' => $r->date('from')?->format('d M Y').' to '.$r->date('to')?->format('d M Y'),
+                'period' => $period,
                 'content' => view($view.'-table', $data)->render(),
                 'extraCss' => $data['extraCss'] ?? '',
             ])->setPaper('a4', $orientation);
@@ -43,7 +51,10 @@ class ReportController extends Controller
         $this->authorize('view-reports');
         [$from, $to] = $this->dates($r);
 
-        $query = Sale::with('customer')->whereBetween('sold_at', [$from->startOfDay(), $to->endOfDay()]);
+        $query = Sale::with('customer');
+        if ($from && $to) {
+            $query->whereBetween('sold_at', [$from->startOfDay(), $to->endOfDay()]);
+        }
 
         if ($r->filled('customer_id')) {
             $query->where('customer_id', $r->customer_id);
@@ -64,7 +75,10 @@ class ReportController extends Controller
         $this->authorize('view-reports');
         [$from, $to] = $this->dates($r);
 
-        $query = Purchase::with('supplier')->whereBetween('purchase_date', [$from->startOfDay(), $to->endOfDay()]);
+        $query = Purchase::with('supplier');
+        if ($from && $to) {
+            $query->whereBetween('purchase_date', [$from->startOfDay(), $to->endOfDay()]);
+        }
 
         if ($r->filled('supplier_id')) {
             $query->where('supplier_id', $r->supplier_id);
@@ -81,7 +95,10 @@ class ReportController extends Controller
         $this->authorize('view-reports');
         [$from, $to] = $this->dates($r);
 
-        $query = Expense::with('category')->whereBetween('expense_date', [$from->toDateString(), $to->toDateString()]);
+        $query = Expense::with('category');
+        if ($from && $to) {
+            $query->whereBetween('expense_date', [$from->toDateString(), $to->toDateString()]);
+        }
 
         if ($r->filled('category_id')) {
             $query->where('expense_category_id', $r->category_id);
@@ -152,7 +169,10 @@ class ReportController extends Controller
     {
         $this->authorize('view-reports');
         [$from, $to] = $this->dates($r);
-        $base = Sale::where('status', 'completed')->whereBetween('sold_at', [$from->startOfDay(), $to->endOfDay()]);
+        $base = Sale::where('status', 'completed');
+        if ($from && $to) {
+            $base->whereBetween('sold_at', [$from->startOfDay(), $to->endOfDay()]);
+        }
 
         $main = clone $base;
         $mainData = $main->where('sale_type', 'main')->selectRaw('COALESCE(SUM(grand_total),0) sales, COALESCE(SUM(cost_total),0) cogs, COALESCE(SUM(profit_total),0) profit')->first();
@@ -160,13 +180,21 @@ class ReportController extends Controller
         $remnant = clone $base;
         $remnantData = $remnant->where('sale_type', 'remnant')->selectRaw('COALESCE(SUM(grand_total),0) sales, COALESCE(SUM(cost_total),0) cogs, COALESCE(SUM(profit_total),0) profit')->first();
         foreach (['main' => $mainData, 'remnant' => $remnantData] as $saleType => $row) {
-            $returns = SaleReturn::join('sales', 'sales.id', '=', 'sale_returns.sale_id')->where('sales.sale_type', $saleType)->whereBetween('sale_returns.return_date', [$from->toDateString(), $to->toDateString()])->selectRaw('COALESCE(SUM(return_total),0) revenue, COALESCE(SUM(sale_returns.cost_total),0) cost')->first();
+            $returnsQuery = SaleReturn::join('sales', 'sales.id', '=', 'sale_returns.sale_id')->where('sales.sale_type', $saleType);
+            if ($from && $to) {
+                $returnsQuery->whereBetween('sale_returns.return_date', [$from->toDateString(), $to->toDateString()]);
+            }
+            $returns = $returnsQuery->selectRaw('COALESCE(SUM(return_total),0) revenue, COALESCE(SUM(sale_returns.cost_total),0) cost')->first();
             $row->sales -= $returns->revenue;
             $row->cogs -= $returns->cost;
             $row->profit -= ($returns->revenue - $returns->cost);
         }
 
-        $expenses = Expense::whereBetween('expense_date', [$from->toDateString(), $to->toDateString()])->sum('amount');
+        $expensesQuery = Expense::query();
+        if ($from && $to) {
+            $expensesQuery->whereBetween('expense_date', [$from->toDateString(), $to->toDateString()]);
+        }
+        $expenses = $expensesQuery->sum('amount');
 
         return $this->render($r, 'reports.profit', [
             'main' => $mainData,
