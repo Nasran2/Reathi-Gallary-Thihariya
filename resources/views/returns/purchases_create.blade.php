@@ -14,25 +14,33 @@
     <!-- Step 1: Select Supplier and Bill -->
     <section class="card p-6">
         <h2 class="font-serif text-xl mb-4">1. Select Supplier & Invoice</h2>
-        <div class="grid gap-5 md:grid-cols-2">
-            <div>
-                <label>Supplier *</label>
-                <select class="w-full" x-model="supplier_id" @change="fetchPurchases()" x-init="initSelect($el)">
-                    <option value="">Select Supplier</option>
-                    @foreach($suppliers as $s)
-                        <option value="{{ $s->id }}">{{ $s->name }}</option>
-                    @endforeach
-                </select>
+        <div class="mb-5">
+            <label>Supplier *</label>
+            <select class="w-full max-w-md" x-model="supplier_id" @change="fetchPurchases()" x-init="initSelect($el)">
+                <option value="">Select Supplier</option>
+                @foreach($suppliers as $s)
+                    <option value="{{ $s->id }}">{{ $s->name }}</option>
+                @endforeach
+            </select>
+        </div>
+
+        <div x-show="supplier_id && purchases.length > 0" style="display: none;">
+            <label class="mb-2 block text-sm font-medium text-slate-700">Select Purchase Invoice *</label>
+            <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                <template x-for="p in purchases" :key="p.id">
+                    <button type="button" @click="selectPurchase(p.id)" class="text-left p-4 rounded-xl border-2 transition-colors duration-200 focus:outline-none" :class="purchase_id === p.id ? 'border-teal-500 bg-teal-50 shadow-sm' : 'border-slate-200 bg-white hover:border-slate-300'">
+                        <div class="flex justify-between items-start mb-2">
+                            <span class="font-bold text-teal-700" x-text="p.purchase_no"></span>
+                            <span class="text-xs font-medium text-slate-500" x-text="formatDate(p.purchase_date)"></span>
+                        </div>
+                        <div class="text-lg font-semibold text-ink" x-text="'Rs. ' + money(p.supplier_total)"></div>
+                        <div class="text-sm text-slate-500 mt-1" x-text="p.supplier_invoice_no ? 'Ref: ' + p.supplier_invoice_no : 'No reference'"></div>
+                    </button>
+                </template>
             </div>
-            <div>
-                <label>Purchase Invoice *</label>
-                <select class="w-full" x-model="purchase_id" @change="fetchItems()" :disabled="!supplier_id">
-                    <option value="">Select Invoice</option>
-                    <template x-for="p in purchases" :key="p.id">
-                        <option :value="p.id" x-text="p.purchase_no + ' (' + p.purchase_date + ')'"></option>
-                    </template>
-                </select>
-            </div>
+        </div>
+        <div x-show="supplier_id && purchases.length === 0" style="display: none;" class="p-5 text-center text-slate-500 bg-slate-50 rounded-xl border border-dashed border-slate-300">
+            No purchases found for this supplier.
         </div>
     </section>
 
@@ -193,7 +201,7 @@
 <script>
 function returnExchangeForm() {
     return {
-        catalog: @json($products->map(fn($p) => ['id' => $p->id, 'name' => $p->name, 'sku' => $p->sku, 'average_cost' => (float)$p->average_cost, 'units' => $p->productUnits->map(fn($u) => ['id' => $u->unit_id, 'name' => $u->unit->name, 'symbol' => $u->unit->symbol])])),
+        catalog: @json($catalog),
         supplier_id: '',
         purchase_id: '',
         purchases: [],
@@ -215,6 +223,17 @@ function returnExchangeForm() {
             if (!this.supplier_id) return;
             let res = await fetch(`/api/purchases/supplier/${this.supplier_id}`);
             this.purchases = await res.json();
+        },
+
+        selectPurchase(id) {
+            this.purchase_id = id;
+            this.fetchItems();
+        },
+
+        formatDate(dateStr) {
+            if (!dateStr) return '';
+            const d = new Date(dateStr);
+            return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
         },
 
         async fetchItems() {

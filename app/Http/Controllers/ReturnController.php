@@ -90,7 +90,18 @@ class ReturnController extends Controller
     {
         $suppliers = \App\Models\Supplier::all();
         $products = \App\Models\Product::with('productUnits.unit')->get();
-        return view('returns.purchases_create', compact('suppliers', 'products'));
+        $catalog = $products->map(fn($p) => [
+            'id' => $p->id, 
+            'name' => $p->name, 
+            'sku' => $p->sku, 
+            'average_cost' => (float)$p->average_cost, 
+            'units' => $p->productUnits->map(fn($u) => [
+                'id' => $u->unit_id, 
+                'name' => $u->unit->name, 
+                'symbol' => $u->unit->symbol
+            ])
+        ]);
+        return view('returns.purchases_create', compact('suppliers', 'catalog'));
     }
 
     public function getSupplierPurchases($supplier_id)
