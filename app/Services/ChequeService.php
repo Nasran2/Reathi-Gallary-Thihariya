@@ -108,9 +108,9 @@ class ChequeService
         }, 3);
     }
 
-    public function pass(Cheque $cheque, ?int $userId = null): Cheque
+    public function pass(Cheque $cheque, ?string $passDate = null, ?int $userId = null): Cheque
     {
-        return DB::transaction(function () use ($cheque, $userId) {
+        return DB::transaction(function () use ($cheque, $passDate, $userId) {
             $cheque = Cheque::lockForUpdate()->findOrFail($cheque->id);
             if ($cheque->status === 'passed') {
                 return $cheque;
@@ -122,12 +122,12 @@ class ChequeService
                 throw ValidationException::withMessages(['cheque' => 'The cheque cannot pass before its cheque date.']);
             }
             foreach ($cheque->customerPayments()->where('status', 'pending')->lockForUpdate()->get() as $payment) {
-                $this->payments->clearCustomer($payment);
+                $this->payments->clearCustomer($payment, $passDate);
             }
             foreach ($cheque->supplierPayments()->where('status', 'pending')->lockForUpdate()->get() as $payment) {
-                $this->payments->clearSupplier($payment);
+                $this->payments->clearSupplier($payment, $passDate);
             }
-            $cheque->update(['status' => 'passed', 'processed_at' => now(), 'processed_by' => $userId]);
+            $cheque->update(['status' => 'passed', 'processed_at' => $passDate ? \Carbon\Carbon::parse($passDate) : now(), 'processed_by' => $userId]);
             $this->event($cheque, 'passed', 'Cheque passed / cleared; all linked pending payments cleared', [], $userId);
 
             return $cheque->load('events');

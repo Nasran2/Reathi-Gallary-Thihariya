@@ -137,7 +137,7 @@ class PaymentService
         }
     }
 
-    public function clearCustomer(CustomerPayment $payment): void
+    public function clearCustomer(CustomerPayment $payment, ?string $date = null): void
     {
         if ($payment->status !== 'pending') {
             return;
@@ -147,8 +147,8 @@ class PaymentService
             $sale->update(['pending_total' => Decimal::sub($sale->pending_total, $allocation->amount, 4), 'paid_total' => Decimal::add($sale->paid_total, $allocation->amount, 4)]);
             $allocation->update(['status' => 'cleared']);
         }
-        $payment->update(['status' => 'cleared', 'cleared_at' => now()]);
-        $this->ledger->customer($payment->customer, 'cheque_passed', 0, $payment->amount, $payment, $payment->reference, Decimal::of($payment->amount)->negated());
+        $payment->update(['status' => 'cleared', 'cleared_at' => $date ? \Carbon\Carbon::parse($date) : now()]);
+        $this->ledger->customer($payment->customer, 'cheque_passed', 0, $payment->amount, $payment, $payment->reference, Decimal::of($payment->amount)->negated(), $date);
     }
 
     public function cancelCustomer(CustomerPayment $payment): void
@@ -165,7 +165,7 @@ class PaymentService
         $this->ledger->customer($payment->customer, 'cheque_returned', 0, 0, $payment, $payment->reference, Decimal::of($payment->amount)->negated());
     }
 
-    public function clearSupplier(SupplierPayment $payment): void
+    public function clearSupplier(SupplierPayment $payment, ?string $date = null): void
     {
         if ($payment->status !== 'pending') {
             return;
@@ -175,8 +175,8 @@ class PaymentService
             $purchase->update(['pending_total' => Decimal::sub($purchase->pending_total, $allocation->amount, 4), 'paid_total' => Decimal::add($purchase->paid_total, $allocation->amount, 4)]);
             $allocation->update(['status' => 'cleared']);
         }
-        $payment->update(['status' => 'cleared', 'cleared_at' => now()]);
-        $this->ledger->supplier($payment->supplier, 'cheque_passed', $payment->amount, 0, $payment, $payment->reference, Decimal::of($payment->amount)->negated());
+        $payment->update(['status' => 'cleared', 'cleared_at' => $date ? \Carbon\Carbon::parse($date) : now()]);
+        $this->ledger->supplier($payment->supplier, 'cheque_passed', $payment->amount, 0, $payment, $payment->reference, Decimal::of($payment->amount)->negated(), $date);
     }
 
     public function cancelSupplier(SupplierPayment $payment): void

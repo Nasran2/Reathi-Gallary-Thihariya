@@ -1,7 +1,10 @@
 import Alpine from '@alpinejs/csp';
 import collapse from '@alpinejs/collapse';
+import TomSelect from 'tom-select/dist/esm/tom-select.complete.js';
+import 'tom-select/dist/css/tom-select.css';
 
 window.Alpine = Alpine;
+window.TomSelect = TomSelect;
 Alpine.plugin(collapse);
 
 const readJson = (id, fallback = {}) => {

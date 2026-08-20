@@ -101,9 +101,24 @@
                         <td>
                             @if($days<=0)
                             <div class="flex gap-1">
-                                <form method="post" action="{{ route('cheques.pass',$c) }}" onsubmit="return confirm('Pass this cheque and clear every linked payment?')">
-                                    @csrf<button class="btn hover:bg-emerald-200 transition-colors !bg-emerald-100 !px-2 !py-1 text-emerald-800">PASS</button>
-                                </form>
+                                <div x-data="{ open: false }">
+                                    <button type="button" @click="open = true" class="btn hover:bg-emerald-200 transition-colors !bg-emerald-100 !px-2 !py-1 text-emerald-800">PASS</button>
+                                    <template x-teleport="body">
+                                        <div x-show="open" style="display:none;" class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 p-4">
+                                            <form method="post" action="{{ route('cheques.pass',$c) }}" @click.away="open = false" class="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl">
+                                                @csrf
+                                                <h3 class="font-serif text-xl mb-2 text-ink">Pass Cheque</h3>
+                                                <p class="text-sm text-slate-500 mb-5">Select the date this cheque passed to clear linked payments.</p>
+                                                <label class="block text-sm font-medium text-slate-700 mb-1">Pass Date</label>
+                                                <input type="date" name="pass_date" value="{{ today()->format('Y-m-d') }}" class="w-full mb-6 rounded-lg border-slate-300" required>
+                                                <div class="flex justify-end gap-3">
+                                                    <button type="button" @click="open = false" class="btn-soft">Cancel</button>
+                                                    <button type="submit" class="btn-teal">Confirm Pass</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </template>
+                                </div>
                                 <a href="{{ route('cheques.show',$c) }}#return" class="btn hover:bg-red-100 transition-colors !bg-red-50 !px-2 !py-1 text-red-700">RETURN</a>
                             </div>
                             @endif

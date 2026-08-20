@@ -15,6 +15,7 @@
     },
     "dependencies": {
         "@alpinejs/collapse": "^3.16.2",
-        "@alpinejs/csp": "^3.16.2"
+        "@alpinejs/csp": "^3.16.2",
+        "tom-select": "2.2.2"
     }
 }

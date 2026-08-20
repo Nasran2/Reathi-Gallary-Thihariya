@@ -106,6 +106,8 @@ class MultipleUnitTest extends TestCase
             ->assertSee('Load Multiple Unit Preset')
             ->assertSee('"base_unit_id":', false)
             ->assertSee('x-show="baseUnitId"', false)
+            ->assertDontSee('cdn.jsdelivr.net/npm/tom-select', false)
+            ->assertDontSee('tom-select.complete.min.js', false)
             ->assertDontSee('x-model="newCatName" placeholder="E.g. Linen" required', false)
             ->assertSee('Meter Standard');
 

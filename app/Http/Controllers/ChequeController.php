@@ -72,7 +72,8 @@ class ChequeController extends Controller
 
     public function pass(Cheque $cheque, ChequeService $service, Request $r)
     {
-        $service->pass($cheque, $r->user()->id);
+        $data = $r->validate(['pass_date' => 'nullable|date']);
+        $service->pass($cheque, $data['pass_date'] ?? null, $r->user()->id);
 
         return back()->with('success', 'Cheque passed. All linked pending payments were cleared exactly once.');
     }
