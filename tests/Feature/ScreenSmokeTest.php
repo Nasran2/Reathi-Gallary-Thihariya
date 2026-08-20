@@ -30,4 +30,25 @@ class ScreenSmokeTest extends TestCase
             $this->get($url)->assertOk();
         }
     }
+
+    public function test_powered_by_footer_is_visible_on_login_admin_and_pos_layouts(): void
+    {
+        $this->get(route('login'))
+            ->assertOk()
+            ->assertSee('Software powered by')
+            ->assertSee('Twinsofte.com');
+
+        $this->seed();
+        $this->actingAs(User::where('email', 'admin@reathi.test')->firstOrFail());
+
+        $this->get(route('dashboard'))
+            ->assertOk()
+            ->assertSee('Software powered by')
+            ->assertSee('https://twinsofte.com', false);
+
+        $this->get(route('pos.main'))
+            ->assertOk()
+            ->assertSee('Software powered by')
+            ->assertSee('Twinsofte.com');
+    }
 }

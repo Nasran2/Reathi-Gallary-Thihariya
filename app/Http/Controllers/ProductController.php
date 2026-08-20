@@ -28,15 +28,21 @@ class ProductController extends Controller
         return view('products.form', $this->formData(new Product));
     }
 
-    public function store(Request $r)
+    public function store(Request $r, \App\Services\InventoryService $inventoryService)
     {
         $this->authorize('manage-products');
         $data = $this->validated($r);
-        DB::transaction(function () use ($data) {
+        DB::transaction(function () use ($data, $r, $inventoryService) {
             $units = $data['units'] ?? [];
-            unset($data['units']);
+            $openingStock = (float) ($data['opening_stock'] ?? 0);
+            unset($data['units'], $data['opening_stock']);
             $product = Product::create($data);
             $this->syncUnits($product, $units);
+            
+            if ($openingStock > 0) {
+                $storeId = \App\Models\Store::where('active', 1)->value('id') ?? 1;
+                $inventoryService->move($product, $storeId, 'main', 'stock_adjustment', $openingStock, 0, $product->average_cost, null, $r->user()->id, 'Opening Stock');
+            }
         });
 
         return redirect()->route('products.index')->with('success', 'Product created.');
@@ -49,15 +55,21 @@ class ProductController extends Controller
         return view('products.form', $this->formData($product));
     }
 
-    public function update(Request $r, Product $product)
+    public function update(Request $r, Product $product, \App\Services\InventoryService $inventoryService)
     {
         $this->authorize('manage-products');
         $data = $this->validated($r, $product);
-        DB::transaction(function () use ($data, $product) {
+        DB::transaction(function () use ($data, $product, $r, $inventoryService) {
             $units = $data['units'] ?? [];
-            unset($data['units']);
+            $openingStock = (float) ($data['opening_stock'] ?? 0);
+            unset($data['units'], $data['opening_stock']);
             $product->update($data);
             $this->syncUnits($product, $units);
+            
+            if ($openingStock > 0) {
+                $storeId = \App\Models\Store::where('active', 1)->value('id') ?? 1;
+                $inventoryService->move($product, $storeId, 'main', 'stock_adjustment', $openingStock, 0, $product->average_cost, null, $r->user()->id, 'Added Stock');
+            }
         });
 
         return redirect()->route('products.index')->with('success', 'Product updated.');
@@ -125,7 +137,7 @@ class ProductController extends Controller
             'barcode' => filled($r->input('barcode')) ? trim((string) $r->input('barcode')) : null,
         ]);
 
-        $data = $r->validate(['name' => 'required|max:150', 'sku' => 'required|max:80|unique:products,sku,'.($p?->id ?? 'NULL'), 'barcode' => 'nullable|max:80|unique:products,barcode,'.($p?->id ?? 'NULL'), 'category_id' => 'nullable|exists:categories,id', 'base_unit_id' => 'required|exists:units,id', 'default_purchase_unit_id' => 'nullable|exists:units,id', 'default_selling_unit_id' => 'nullable|exists:units,id', 'default_supplier_id' => 'nullable|exists:suppliers,id', 'brand_id' => 'nullable|exists:brands,id', 'fabric_type' => 'nullable|max:100', 'material' => 'nullable|max:100', 'colour' => 'nullable|max:100', 'pattern' => 'nullable|max:100', 'width' => 'nullable|max:100', 'description' => 'nullable', 'average_cost' => 'required|numeric|min:0', 'main_selling_price' => 'required|numeric|min:0', 'remnant_selling_price' => 'required|numeric|min:0', 'minimum_stock' => 'required|numeric|min:0', 'reorder_level' => 'required|numeric|min:0', 'tax_rate' => 'nullable|numeric|min:0', 'track_rolls' => 'boolean', 'active' => 'boolean', 'units' => 'nullable|array', 'units.*.unit_id' => 'required|distinct|exists:units,id', 'units.*.base_quantity' => 'required|numeric|gt:0', 'units.*.unit_quantity' => 'required|numeric|gt:0', 'units.*.can_purchase' => 'boolean', 'units.*.can_sell' => 'boolean']);
+        $data = $r->validate(['name' => 'required|max:150', 'sku' => 'required|max:80|unique:products,sku,'.($p?->id ?? 'NULL'), 'barcode' => 'nullable|max:80|unique:products,barcode,'.($p?->id ?? 'NULL'), 'category_id' => 'nullable|exists:categories,id', 'base_unit_id' => 'required|exists:units,id', 'default_purchase_unit_id' => 'nullable|exists:units,id', 'default_selling_unit_id' => 'nullable|exists:units,id', 'default_supplier_id' => 'nullable|exists:suppliers,id', 'brand_id' => 'nullable|exists:brands,id', 'fabric_type' => 'nullable|max:100', 'material' => 'nullable|max:100', 'colour' => 'nullable|max:100', 'pattern' => 'nullable|max:100', 'width' => 'nullable|max:100', 'description' => 'nullable', 'average_cost' => 'required|numeric|min:0', 'main_selling_price' => 'required|numeric|min:0', 'remnant_selling_price' => 'required|numeric|min:0', 'opening_stock' => 'nullable|numeric|min:0', 'minimum_stock' => 'required|numeric|min:0', 'reorder_level' => 'required|numeric|min:0', 'tax_rate' => 'nullable|numeric|min:0', 'track_rolls' => 'boolean', 'active' => 'boolean', 'units' => 'nullable|array', 'units.*.unit_id' => 'required|distinct|exists:units,id', 'units.*.base_quantity' => 'required|numeric|gt:0', 'units.*.unit_quantity' => 'required|numeric|gt:0', 'units.*.can_purchase' => 'boolean', 'units.*.can_sell' => 'boolean']);
 
         $otherProducts = Product::query()->when($p, fn ($query) => $query->whereKeyNot($p->id));
 

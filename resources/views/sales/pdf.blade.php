@@ -1,294 +1,321 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="utf-8">
     <title>Invoice {{ $sale->invoice_no }}</title>
     <style>
+        @page { margin: 18mm 16mm 25mm; }
+        * { box-sizing: border-box; }
         body {
-            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-            color: #333;
             margin: 0;
-            padding: 0;
-            font-size: 13px;
-            line-height: 1.5;
+            color: #17233c;
+            font-family: DejaVu Sans, Arial, sans-serif;
+            font-size: 10px;
+            line-height: 1.45;
         }
-        .header {
-            width: 100%;
-            border-bottom: 2px solid #14b8a6; /* Teal color */
-            padding-bottom: 20px;
-            margin-bottom: 30px;
+        table { border-collapse: collapse; width: 100%; }
+        .brand-bar {
+            height: 6px;
+            margin: -18mm -16mm 14mm;
+            background: #16877f;
         }
-        .header table {
-            width: 100%;
-            border: none;
-        }
-        .company-name {
+        .header td { vertical-align: top; }
+        .business-name {
+            margin: 0 0 4px;
+            color: #17233c;
             font-size: 24px;
-            font-weight: bold;
-            color: #0f172a;
-            margin-bottom: 5px;
+            font-weight: 700;
         }
-        .company-details {
-            color: #64748b;
-            font-size: 12px;
-        }
-        .invoice-title {
-            font-size: 32px;
-            font-weight: bold;
-            color: #14b8a6;
+        .muted { color: #71809b; }
+        .invoice-label {
+            color: #16877f;
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: 1px;
             text-align: right;
-            text-transform: uppercase;
         }
-        .invoice-details {
+        .invoice-meta {
+            margin-top: 7px;
+            color: #43516a;
+            font-size: 9.5px;
             text-align: right;
-            font-size: 13px;
         }
-        .invoice-details strong {
-            color: #334155;
+        .invoice-meta strong { color: #17233c; }
+        .divider {
+            height: 2px;
+            margin: 13px 0 14px;
+            background: #16877f;
         }
-        
-        .customer-section {
-            width: 100%;
-            margin-bottom: 30px;
+        .info-grid {
+            margin-bottom: 16px;
+            table-layout: fixed;
         }
-        .customer-section table {
-            width: 100%;
-            border: none;
+        .info-grid td {
+            width: 50%;
+            padding: 12px 14px;
+            vertical-align: top;
+            border: 1px solid #e2e8f0;
+            background: #f8fafc;
         }
-        .bill-to-title {
-            font-size: 11px;
-            font-weight: bold;
-            text-transform: uppercase;
-            color: #94a3b8;
+        .info-grid td + td { border-left: 5px solid #fff; }
+        .section-label {
             margin-bottom: 5px;
+            color: #71809b;
+            font-size: 8px;
+            font-weight: 700;
+            letter-spacing: .8px;
+            text-transform: uppercase;
         }
         .customer-name {
-            font-size: 16px;
-            font-weight: bold;
-            color: #0f172a;
+            margin-bottom: 3px;
+            color: #17233c;
+            font-size: 14px;
+            font-weight: 700;
         }
-        
-        .items-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 30px;
-        }
-        .items-table th {
-            background-color: #f8fafc;
-            color: #475569;
-            font-size: 11px;
+        .sale-type {
+            display: inline-block;
+            margin-bottom: 5px;
+            padding: 3px 7px;
+            color: #126c66;
+            background: #e6f5f3;
+            border-radius: 3px;
+            font-size: 8px;
+            font-weight: 700;
             text-transform: uppercase;
-            font-weight: bold;
+        }
+        .items {
+            margin-bottom: 16px;
+            table-layout: fixed;
+        }
+        .items thead { display: table-header-group; }
+        .items tr { page-break-inside: avoid; }
+        .items th {
+            padding: 8px 7px;
+            color: #fff;
+            background: #17233c;
+            font-size: 8px;
+            font-weight: 700;
+            letter-spacing: .35px;
             text-align: left;
-            padding: 12px 15px;
-            border-bottom: 2px solid #e2e8f0;
+            text-transform: uppercase;
         }
-        .items-table th.right, .items-table td.right {
-            text-align: right;
+        .items td {
+            padding: 9px 7px;
+            color: #43516a;
+            border-bottom: 1px solid #e7edf4;
+            vertical-align: top;
         }
-        .items-table td {
-            padding: 12px 15px;
-            border-bottom: 1px solid #f1f5f9;
-            color: #334155;
-        }
+        .items tbody tr:nth-child(even) td { background: #fbfcfe; }
+        .items .right { text-align: right; }
         .product-name {
-            font-weight: bold;
-            color: #0f172a;
-            display: block;
+            color: #17233c;
+            font-weight: 700;
         }
-        .product-sku {
-            font-size: 11px;
-            color: #94a3b8;
+        .product-code {
+            margin-top: 2px;
+            color: #8b98ad;
+            font-size: 8px;
         }
-        
-        .totals-section {
-            width: 100%;
-            margin-bottom: 40px;
+        .summary-layout {
+            table-layout: fixed;
+            page-break-inside: avoid;
         }
-        .totals-table {
-            width: 350px;
-            float: right;
-            border-collapse: collapse;
-        }
-        .totals-table td {
-            padding: 8px 15px;
-            color: #475569;
-        }
-        .totals-table td.label {
-            text-align: left;
-            font-weight: normal;
-        }
-        .totals-table td.value {
-            text-align: right;
-            font-weight: bold;
-            color: #0f172a;
-        }
-        .totals-table tr.grand-total td {
-            background-color: #f8fafc;
-            border-top: 2px solid #14b8a6;
-            border-bottom: 2px solid #14b8a6;
-            font-size: 16px;
-            padding: 12px 15px;
-            color: #14b8a6;
-        }
-        .totals-table tr.due td {
-            background-color: #fffbeb;
-            color: #b45309;
-        }
-        .clear {
-            clear: both;
-        }
-        
-        .footer {
-            margin-top: 50px;
-            border-top: 1px solid #e2e8f0;
-            padding-top: 20px;
-            text-align: center;
-            font-size: 11px;
-            color: #94a3b8;
-        }
-        .payment-info {
-            background-color: #f8fafc;
-            border: 1px solid #e2e8f0;
-            border-radius: 4px;
-            padding: 15px;
+        .summary-layout > tbody > tr > td {
             width: 50%;
-            float: left;
-            margin-top: -100px; /* aligns with totals */
+            vertical-align: top;
         }
-        .payment-info h4 {
-            margin: 0 0 10px 0;
-            font-size: 11px;
-            text-transform: uppercase;
-            color: #64748b;
+        .summary-layout > tbody > tr > td:first-child { padding-right: 10px; }
+        .summary-layout > tbody > tr > td:last-child { padding-left: 10px; }
+        .payment-box {
+            padding: 12px;
+            border: 1px solid #dfe7ef;
+            background: #f8fafc;
         }
-        .payment-line {
-            font-size: 12px;
-            margin-bottom: 4px;
+        .payment-table td {
+            padding: 5px 0;
+            border-bottom: 1px solid #e7edf4;
+        }
+        .payment-table tr:last-child td { border-bottom: 0; }
+        .payment-table .amount {
+            color: #17233c;
+            font-weight: 700;
+            text-align: right;
+        }
+        .totals td {
+            padding: 6px 9px;
+            color: #43516a;
+        }
+        .totals .value {
+            color: #17233c;
+            font-weight: 700;
+            text-align: right;
+        }
+        .totals .discount .value { color: #dc3f4a; }
+        .totals .grand td {
+            padding-top: 10px;
+            padding-bottom: 10px;
+            color: #16877f;
+            background: #edf8f7;
+            border-top: 2px solid #16877f;
+            border-bottom: 2px solid #16877f;
+            font-size: 13px;
+            font-weight: 700;
+        }
+        .totals .due td {
+            color: #9a5a08;
+            background: #fff8e6;
+            font-weight: 700;
+        }
+        .note {
+            margin-top: 14px;
+            padding: 9px 11px;
+            color: #5d6a81;
+            background: #f8fafc;
+            border-left: 3px solid #16877f;
+            page-break-inside: avoid;
+        }
+        .footer {
+            position: fixed;
+            right: 0;
+            bottom: -17mm;
+            left: 0;
+            padding-top: 7px;
+            color: #8996aa;
+            border-top: 1px solid #dfe7ef;
+            font-size: 8px;
+            text-align: center;
+        }
+        .footer .thanks {
+            margin-bottom: 3px;
+            color: #5d6a81;
+            font-weight: 700;
+        }
+        .powered {
+            margin-top: 5px;
+            color: #71809b;
+            font-size: 8px;
+        }
+        .powered a {
+            color: #16877f;
+            font-weight: 700;
+            text-decoration: none;
         }
     </style>
 </head>
 <body>
+    <div class="brand-bar"></div>
 
-    <div class="header">
-        <table>
-            <tr>
-                <td style="width: 50%;">
-                    <div class="company-name">{{ $sale->store->name ?? 'Reathi Gallery' }}</div>
-                    <div class="company-details">
-                        {{ $sale->store->address ?? 'Main Branch' }}<br>
-                        {{ $sale->store->phone ?? '' }}<br>
-                        {{ $sale->store->email ?? '' }}
-                    </div>
-                </td>
-                <td style="width: 50%;" class="invoice-details">
-                    <div class="invoice-title">INVOICE</div>
-                    <div style="margin-top: 10px;">
-                        <strong>Invoice Number:</strong> {{ $sale->invoice_no }}<br>
-                        <strong>Date:</strong> {{ $sale->sold_at->format('d M Y') }}<br>
-                        <strong>Time:</strong> {{ $sale->sold_at->format('H:i A') }}<br>
-                        <strong>Type:</strong> {{ strtoupper($sale->sale_type) }}
-                    </div>
-                </td>
-            </tr>
-        </table>
-    </div>
+    <table class="header">
+        <tr>
+            <td style="width: 58%;">
+                <div class="business-name">{{ \App\Models\BusinessSetting::read('business_name', 'Reathi Gallery') }}</div>
+                <div class="muted"><strong>{{ $sale->store->name ?? 'Main Store' }}</strong></div>
+                @if($sale->store?->address)<div class="muted">{{ $sale->store->address }}</div>@endif
+                @if(\App\Models\BusinessSetting::read('business_phone'))<div class="muted">Tel: {{ \App\Models\BusinessSetting::read('business_phone') }}</div>@endif
+            </td>
+            <td style="width: 42%;">
+                <div class="invoice-label">INVOICE</div>
+                <div class="invoice-meta">
+                    <strong>Invoice:</strong> {{ $sale->invoice_no }}<br>
+                    <strong>Date:</strong> {{ $sale->sold_at->format('d M Y') }}<br>
+                    <strong>Time:</strong> {{ $sale->sold_at->format('h:i A') }}
+                </div>
+            </td>
+        </tr>
+    </table>
 
-    <div class="customer-section">
-        <table>
-            <tr>
-                <td style="width: 50%;">
-                    <div class="bill-to-title">Billed To</div>
-                    <div class="customer-name">{{ $sale->customer ? $sale->customer->name : 'Walk-in Customer' }}</div>
-                    @if($sale->customer)
-                        <div class="company-details" style="margin-top: 5px;">
-                            {{ $sale->customer->mobile ? 'Phone: ' . $sale->customer->mobile : '' }}<br>
-                            {{ $sale->customer->email ? 'Email: ' . $sale->customer->email : '' }}<br>
-                            {{ $sale->customer->address ? 'Address: ' . $sale->customer->address : '' }}
-                        </div>
-                    @endif
-                </td>
-                <td style="width: 50%;">
-                    <!-- Could add barcode/qr code here if needed -->
-                </td>
-            </tr>
-        </table>
-    </div>
+    <div class="divider"></div>
 
-    <table class="items-table">
+    <table class="info-grid">
+        <tr>
+            <td>
+                <div class="section-label">Billed to</div>
+                <div class="customer-name">{{ $sale->customer?->name ?? 'Walk-in Customer' }}</div>
+                @if($sale->customer?->mobile)<div class="muted">Phone: {{ $sale->customer->mobile }}</div>@endif
+                @if($sale->customer?->email)<div class="muted">Email: {{ $sale->customer->email }}</div>@endif
+                @if($sale->customer?->address)<div class="muted">Address: {{ $sale->customer->address }}</div>@endif
+            </td>
+            <td>
+                <div class="section-label">Sale information</div>
+                <div class="sale-type">{{ $sale->sale_type }} inventory</div>
+                <div><strong>Cashier:</strong> {{ $sale->user?->name ?? 'System' }}</div>
+                <div><strong>Items:</strong> {{ $sale->items->count() }}</div>
+            </td>
+        </tr>
+    </table>
+
+    <table class="items">
         <thead>
             <tr>
-                <th>Item Description</th>
+                <th style="width: 34%;">Item description</th>
                 <th style="width: 10%;">Unit</th>
-                <th style="width: 10%;" class="right">Qty</th>
-                <th style="width: 15%;" class="right">Price</th>
-                <th style="width: 15%;" class="right">Discount</th>
-                <th style="width: 15%;" class="right">Amount</th>
+                <th style="width: 11%;" class="right">Qty</th>
+                <th style="width: 15%;" class="right">Unit price</th>
+                <th style="width: 14%;" class="right">Discount</th>
+                <th style="width: 16%;" class="right">Amount</th>
             </tr>
         </thead>
         <tbody>
             @foreach($sale->items as $item)
-            <tr>
-                <td>
-                    <span class="product-name">{{ $item->product->name }}</span>
-                    <span class="product-sku">{{ $item->product->sku }} {{ $item->remnant ? '· ' . $item->remnant->remnant_no : '' }}</span>
-                </td>
-                <td>{{ $item->unit->symbol }}</td>
-                <td class="right">{{ $item->quantity + 0 }}</td>
-                <td class="right">{{ number_format($item->unit_price, 2) }}</td>
-                <td class="right">{{ number_format($item->discount_amount, 2) }}</td>
-                <td class="right"><strong>{{ number_format($item->net_revenue, 2) }}</strong></td>
-            </tr>
+                <tr>
+                    <td>
+                        <div class="product-name">{{ $item->product->name }}</div>
+                        <div class="product-code">{{ $item->product->sku }}@if($item->remnant) / {{ $item->remnant->remnant_no }}@endif</div>
+                    </td>
+                    <td>{{ $item->unit->symbol }}</td>
+                    <td class="right">{{ $item->quantity + 0 }}</td>
+                    <td class="right">Rs. {{ number_format($item->unit_price, 2) }}</td>
+                    <td class="right">{{ $item->discount_amount > 0 ? 'Rs. '.number_format($item->discount_amount, 2) : '-' }}</td>
+                    <td class="right"><strong>Rs. {{ number_format($item->net_revenue, 2) }}</strong></td>
+                </tr>
             @endforeach
         </tbody>
     </table>
 
-    <div class="totals-section">
-        @if($sale->payments->count() > 0)
-        <div class="payment-info">
-            <h4>Payment Received</h4>
-            @foreach($sale->payments as $payment)
-            <div class="payment-line">
-                <strong>{{ $payment->method->name }}</strong> 
-                @if($payment->reference) ({{ $payment->reference }}) @endif
-                <span style="float: right;">Rs. {{ number_format($payment->amount, 2) }}</span>
-            </div>
-            @endforeach
-        </div>
-        @endif
+    <table class="summary-layout">
+        <tr>
+            <td>
+                <div class="payment-box">
+                    <div class="section-label">Payment summary</div>
+                    @if($sale->payments->isNotEmpty())
+                        <table class="payment-table">
+                            @foreach($sale->payments as $payment)
+                                <tr>
+                                    <td>
+                                        <strong>{{ $payment->method->name }}</strong>
+                                        @if($payment->reference)<div class="muted">{{ $payment->reference }}</div>@endif
+                                    </td>
+                                    <td class="amount">Rs. {{ number_format($payment->amount, 2) }}</td>
+                                </tr>
+                            @endforeach
+                        </table>
+                    @else
+                        <div class="muted">No payment received - sale recorded as due.</div>
+                    @endif
+                </div>
+            </td>
+            <td>
+                <table class="totals">
+                    <tr><td>Subtotal</td><td class="value">Rs. {{ number_format($sale->subtotal, 2) }}</td></tr>
+                    <tr class="discount"><td>Discount</td><td class="value">- Rs. {{ number_format($sale->discount_total, 2) }}</td></tr>
+                    <tr class="grand"><td>TOTAL</td><td class="value">Rs. {{ number_format($sale->grand_total, 2) }}</td></tr>
+                    <tr><td>Paid</td><td class="value">Rs. {{ number_format($sale->paid_total, 2) }}</td></tr>
+                    @if($sale->due_total > 0)
+                        <tr class="due"><td>AMOUNT DUE</td><td class="value">Rs. {{ number_format($sale->due_total, 2) }}</td></tr>
+                    @endif
+                </table>
+            </td>
+        </tr>
+    </table>
 
-        <table class="totals-table">
-            <tr>
-                <td class="label">Subtotal</td>
-                <td class="value">Rs. {{ number_format($sale->subtotal, 2) }}</td>
-            </tr>
-            @if($sale->discount_total > 0)
-            <tr>
-                <td class="label">Total Discount</td>
-                <td class="value" style="color: #ef4444;">- Rs. {{ number_format($sale->discount_total, 2) }}</td>
-            </tr>
-            @endif
-            <tr class="grand-total">
-                <td class="label"><strong>TOTAL</strong></td>
-                <td class="value"><strong>Rs. {{ number_format($sale->grand_total, 2) }}</strong></td>
-            </tr>
-            
-            @if($sale->due_total > 0)
-            <tr class="due">
-                <td class="label"><strong>DUE AMOUNT</strong></td>
-                <td class="value"><strong>Rs. {{ number_format($sale->due_total, 2) }}</strong></td>
-            </tr>
-            @endif
-        </table>
-        <div class="clear"></div>
-    </div>
+    @if($sale->notes)
+        <div class="note"><strong>Note:</strong> {{ $sale->notes }}</div>
+    @endif
 
     <div class="footer">
-        Thank you for your business!<br>
-        Goods once sold cannot be returned without a valid receipt.
-        @if($sale->notes)
-            <div style="margin-top: 10px; font-style: italic;">Note: {{ $sale->notes }}</div>
-        @endif
+        <div class="thanks">Thank you for your business.</div>
+        Goods once sold can only be returned according to the store return policy.
+        <div class="powered">Software powered by <a href="https://twinsofte.com">Twinsofte.com</a></div>
     </div>
 </body>
 </html>

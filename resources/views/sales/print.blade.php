@@ -200,7 +200,8 @@
             Thank you for shopping with us!<br>
             <br>
             {!! \App\Support\QrCodeRenderer::render(route('invoice.public', $sale->publicToken->token), 80) !!}<br>
-            Scan to view digital invoice
+            Scan to view digital invoice<br>
+            <span style="display:block;margin-top:8px;color:#666;">Software powered by <strong>Twinsofte.com</strong></span>
         </div>
     </div>
 </body>

@@ -13,8 +13,8 @@ $existingExtras = collect($existing)
     'rows' => $existingExtras,
     'baseUnitId' => (string) $baseUnitId,
     'presets' => $unitPresets,
-    'mainPrice' => (string) old('main_selling_price', $product->main_selling_price ?? 0),
-    'remnantPrice' => (string) old('remnant_selling_price', $product->remnant_selling_price ?? 0),
+    'mainPrice' => number_format((float) old('main_selling_price', $product->main_selling_price ?? 0), 3, '.', ''),
+    'remnantPrice' => number_format((float) old('remnant_selling_price', $product->remnant_selling_price ?? 0), 3, '.', ''),
     'categoryStoreUrl' => route('settings.categories.store'),
 ], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) !!}</script>
 <form method="post" action="{{ $product->exists?route('products.update',$product):route('products.store') }}" x-data="productForm">@csrf @if($product->exists)@method('PUT')@endif
@@ -79,7 +79,52 @@ $existingExtras = collect($existing)
         </div>
     </div>
 </section>
-<section class="card mt-5 p-6"><h2 class="font-serif text-xl text-ink">Stock unit & controls</h2><div class="mt-5 grid gap-5 md:grid-cols-3 md:grid-cols-4"><div><label>Base stock unit *</label><select class="w-full" name="base_unit_id" id="base_unit_id" x-model="baseUnitId" @change="baseChanged()" required><option value="">Select</option>@foreach($units as $u)<option value="{{ $u->id }}">{{ $u->name }} ({{ $u->symbol }})</option>@endforeach</select></div><div><label>Cost Price / Base Unit</label><div class="relative"><span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-500">Rs.</span><input class="w-full pl-9" type="number" step="0.0001" min="0" name="average_cost" value="{{ old('average_cost', $product->average_cost ?? 0) }}" required></div></div><div><label>Main Selling Price / Base Unit</label><div class="relative"><span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-500">Rs.</span><input class="w-full pl-9" type="number" step="0.0001" min="0" name="main_selling_price" x-model="mainPrice" required></div></div><div><label>Remnant Selling Price / Base Unit</label><div class="relative"><span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-500">Rs.</span><input class="w-full pl-9" type="number" step="0.0001" min="0" name="remnant_selling_price" x-model="remnantPrice" required></div></div><div><label>Minimum stock</label><input class="w-full" type="number" step="0.001" name="minimum_stock" value="{{ old('minimum_stock',$product->minimum_stock??0) }}" required></div><div><label>Reorder level</label><input class="w-full" type="number" step="0.001" name="reorder_level" value="{{ old('reorder_level',$product->reorder_level??0) }}" required></div><div class="hidden"><label>Tax rate %</label><input class="w-full" type="number" step="0.0001" name="tax_rate" value="{{ old('tax_rate',$product->tax_rate??0) }}"></div></div><div class="mt-4 flex gap-6"><label class="flex items-center gap-2 normal-case"><input type="checkbox" name="track_rolls" value="1" @checked(old('track_rolls',$product->track_rolls))> Track rolls/batches</label><label class="flex items-center gap-2 normal-case"><input type="checkbox" name="active" value="1" @checked(old('active',$product->exists?$product->active:true))> Active</label></div></section>
+<section class="card mt-5 p-6">
+    <h2 class="font-serif text-xl text-ink">Stock unit & controls</h2>
+    <div class="mt-5 grid gap-5 md:grid-cols-3 md:grid-cols-4">
+        <div>
+            <label>Base stock unit *</label>
+            <select class="w-full" name="base_unit_id" id="base_unit_id" x-model="baseUnitId" @change="baseChanged()" required>
+                <option value="">Select</option>
+                @foreach($units as $u)
+                <option value="{{ $u->id }}">{{ $u->name }} ({{ $u->symbol }})</option>
+                @endforeach
+            </select>
+        </div>
+        <div>
+            <label>Cost Price / Base Unit</label>
+            <div class="relative"><span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-500">Rs.</span><input class="w-full pl-9" type="number" step="0.001" min="0" name="average_cost" value="{{ old('average_cost', number_format((float)($product->average_cost ?? 0), 3, '.', '')) }}" required></div>
+        </div>
+        <div>
+            <label>Main Selling Price / Base Unit</label>
+            <div class="relative"><span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-500">Rs.</span><input class="w-full pl-9" type="number" step="0.001" min="0" name="main_selling_price" x-model="mainPrice" required></div>
+        </div>
+        <div>
+            <label>Remnant Selling Price / Base Unit</label>
+            <div class="relative"><span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-500">Rs.</span><input class="w-full pl-9" type="number" step="0.001" min="0" name="remnant_selling_price" x-model="remnantPrice" required></div>
+        </div>
+        <div>
+            <label>Opening Stock (Main Store)</label>
+            <input class="w-full" type="number" step="0.001" min="0" name="opening_stock" value="{{ old('opening_stock', '0.000') }}" placeholder="Enter opening balance">
+        </div>
+        <div>
+            <label>Minimum stock</label>
+            <input class="w-full" type="number" step="0.001" min="0" name="minimum_stock" value="{{ old('minimum_stock', number_format((float)($product->minimum_stock ?? 0), 3, '.', '')) }}" required>
+        </div>
+        <div>
+            <label>Reorder level</label>
+            <input class="w-full" type="number" step="0.001" min="0" name="reorder_level" value="{{ old('reorder_level', number_format((float)($product->reorder_level ?? 0), 3, '.', '')) }}" required>
+        </div>
+        <div class="hidden">
+            <label>Tax rate %</label>
+            <input class="w-full" type="number" step="0.001" name="tax_rate" value="{{ old('tax_rate', $product->tax_rate ?? 0) }}">
+        </div>
+    </div>
+    <div class="mt-4 flex gap-6">
+        <label class="flex items-center gap-2 normal-case"><input type="checkbox" name="track_rolls" value="1" @checked(old('track_rolls',$product->track_rolls))> Track rolls/batches</label>
+        <label class="flex items-center gap-2 normal-case"><input type="checkbox" name="active" value="1" @checked(old('active',$product->exists?$product->active:true))> Active</label>
+    </div>
+</section>
 
 <section class="card mt-5 overflow-hidden" x-show="baseUnitId" x-cloak>
     <div class="flex items-center justify-between p-6">
@@ -139,7 +184,7 @@ $existingExtras = collect($existing)
                                 @endforeach
                             </select>
                         </td>
-                        <td class="whitespace-nowrap text-sm"><div>Main: <strong>Rs. <span x-text="convertedPrice(row, mainPrice).toFixed(4)"></span></strong></div><div class="text-slate-400">Remnant: Rs. <span x-text="convertedPrice(row, remnantPrice).toFixed(4)"></span></div></td>
+                        <td class="whitespace-nowrap text-sm"><div>Main: <strong>Rs. <span x-text="convertedPrice(row, mainPrice).toFixed(3)"></span></strong></div><div class="text-slate-400">Remnant: Rs. <span x-text="convertedPrice(row, remnantPrice).toFixed(3)"></span></div></td>
                         <td><label class="flex items-center gap-2 whitespace-nowrap normal-case"><input type="checkbox" x-model="row.group" @change="normalizeGroup(row)"> Group conversion</label></td>
                         <td><button type="button" class="text-red-500 hover:text-red-700 font-medium px-3" @click="removeConversion(i)">Remove</button></td>
                     </tr>

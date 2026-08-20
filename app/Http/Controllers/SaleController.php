@@ -23,9 +23,10 @@ class SaleController extends Controller
     
     public function pdf(Sale $sale)
     {
-        $sale->load('items.product', 'items.unit', 'payments.method', 'customer', 'store');
+        $sale->load('items.product', 'items.unit', 'items.remnant', 'payments.method', 'customer', 'store', 'user');
         
         $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('sales.pdf', compact('sale'));
+        $pdf->setPaper('a4', 'portrait');
         
         // Return download response
         return $pdf->download('Invoice-' . $sale->invoice_no . '.pdf');

@@ -11,6 +11,7 @@ use App\Models\Store;
 use App\Models\Supplier;
 use App\Models\SupplierLedger;
 use App\Models\Unit;
+use App\Models\User;
 use App\Services\InventoryService;
 use App\Services\PurchaseService;
 use App\Services\RemnantService;
@@ -137,5 +138,31 @@ class CoreAccountingTest extends TestCase
         $b = app(SaleService::class)->checkout($payload);
         $this->assertSame($a->id,$b->id);
         $this->assertSame('8.000000',InventoryBalance::first()->fresh()->quantity);
+    }
+
+    public function test_invoice_pdf_renders_the_new_layout_and_powered_by_footer(): void
+    {
+        $meter = Unit::create(['name' => 'Meter', 'symbol' => 'm']);
+        $product = $this->product('Invoice Fabric', $meter, [[$meter, 1]], '500', '800', '300');
+        app(InventoryService::class)->move($product, $this->store->id, 'main', 'opening_stock', 10, 0, 500);
+        $sale = $this->sale($product, $meter, '1', '800');
+        $user = User::forceCreate([
+            'name' => 'Invoice Tester',
+            'username' => 'invoice-tester',
+            'email' => 'invoice@example.test',
+            'password' => bcrypt('password'),
+            'active' => true,
+        ]);
+        $sale->update(['user_id' => $user->id]);
+        $sale->load('items.product', 'items.unit', 'items.remnant', 'payments.method', 'customer', 'store', 'user');
+
+        $html = view('sales.pdf', compact('sale'))->render();
+        $this->assertStringContainsString('Payment summary', $html);
+        $this->assertStringContainsString('Software powered by', $html);
+        $this->assertStringContainsString('Twinsofte.com', $html);
+
+        $response = $this->actingAs($user)->get(route('sales.pdf', $sale));
+        $response->assertOk()->assertHeader('content-type', 'application/pdf');
+        $this->assertStringStartsWith('%PDF-', $response->getContent());
     }
 }

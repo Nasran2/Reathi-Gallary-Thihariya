@@ -8,7 +8,7 @@
     @vite(['resources/css/app.css','resources/js/app.js'])
 </head>
 <body class="min-h-full bg-slate-50">
-    <main class="min-w-0 flex-1">
+    <main class="flex min-h-screen min-w-0 flex-1 flex-col">
         <header class="sticky top-0 z-20 flex h-14 items-center justify-between border-b border-slate-800 bg-ink px-4 lg:px-8 text-white">
             <div class="flex items-center gap-4">
                 <a href="{{ route('dashboard') }}" class="flex items-center gap-3 hover:text-slate-300">
@@ -36,24 +36,40 @@
             </div>
         </header>
         
-        <div class="p-4 lg:p-6 min-h-[calc(100vh-3.5rem)]">
-            @if(session('success'))
-                <div class="mb-5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{{ session('success') }}</div>
-            @endif 
-            
-            @if($errors->any())
-                <div class="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
-                    <strong>Please fix the following:</strong>
-                    <ul class="mt-1 list-disc pl-5">
-                        @foreach($errors->all() as $error)
-                            <li>{{ $error }}</li>
-                        @endforeach
-                    </ul>
-                </div>
-            @endif 
+        <div class="flex-1 p-4 lg:p-6">
+            <!-- Toast Notifications -->
+            <div style="position: fixed; top: 1.25rem; right: 1.25rem; z-index: 9999; pointer-events: none; display: flex; flex-direction: column; gap: 0.75rem; width: 20rem; max-width: 100%;">
+                @if(session('success'))
+                    <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 7000)" x-transition.opacity.duration.500ms class="flex items-start gap-3 p-4 rounded-xl shadow-lg border bg-emerald-50 border-emerald-200 text-emerald-800" style="pointer-events: auto;">
+                        <div class="flex-1 text-sm">{{ session('success') }}</div>
+                        <button @click="show = false" class="text-emerald-500 hover:text-emerald-700">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                        </button>
+                    </div>
+                @endif 
+                
+                @if($errors->any())
+                    <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 7000)" x-transition.opacity.duration.500ms class="flex items-start gap-3 p-4 rounded-xl shadow-lg border bg-red-50 border-red-200 text-red-800" style="pointer-events: auto;">
+                        <div class="flex-1 text-sm">
+                            <strong>Please fix the following:</strong>
+                            <ul class="mt-1 list-disc pl-5">
+                                @foreach($errors->all() as $error)
+                                    <li>{{ $error }}</li>
+                                @endforeach
+                            </ul>
+                        </div>
+                        <button @click="show = false" class="text-red-500 hover:text-red-700 mt-0.5">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                        </button>
+                    </div>
+                @endif 
+            </div> 
             
             @yield('content')
         </div>
+        <footer class="border-t border-slate-200 bg-white px-4 py-2 text-center text-[10px] text-slate-400">
+            Software powered by <a class="font-semibold text-teal hover:underline" href="https://twinsofte.com" target="_blank" rel="noopener">Twinsofte.com</a>
+        </footer>
     </main>
     
     @stack('scripts')

@@ -141,8 +141,8 @@ class ProductManagementTest extends TestCase
             ->assertSee('Search name, SKU or scan barcode…')
             ->assertSee('@input.debounce.300ms="autoAddUnique()"', false)
             ->assertSee('@keydown.enter.prevent="addUniqueSearch()"', false)
-            ->assertSee('if(matches.length!==1)return', false)
-            ->assertSee("autoAddUnique(){if(!this.search.trim())return;this.addUniqueSearch()}", false)
-            ->assertDontSee('addFirst()', false);
+            ->assertSee('if (matches.length !== 1) return', false)
+            ->assertSee('if (!this.search.trim()) return', false)
+            ->assertSee('delete state.addFirst', false);
     }
 }

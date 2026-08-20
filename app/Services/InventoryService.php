@@ -32,7 +32,7 @@ class InventoryService
         $new = Decimal::sub(Decimal::add($balance->quantity, $quantityIn), $quantityOut, 6);
         $allowNegative = filter_var(BusinessSetting::read('allow_negative_stock', false), FILTER_VALIDATE_BOOL);
         if (! $allowNegative && Decimal::of($new)->isNegative()) {
-            throw ValidationException::withMessages(['stock' => "Insufficient {$inventoryType} stock for {$product->name}. Available: {$balance->quantity} {$product->baseUnit?->symbol}."]);
+            throw ValidationException::withMessages(['stock' => "Insufficient {$inventoryType} stock for {$product->name}. Available: " . number_format($balance->quantity, 3, '.', '') . " {$product->baseUnit?->symbol}."]);
         }
         $balance->update(['quantity' => $new]);
 
