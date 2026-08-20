@@ -4,5 +4,90 @@
 @source '../**/*.blade.php';
 @source '../**/*.js';
 @theme { --color-ink:#17233c; --color-plum:#5c304e; --color-ivory:#f8fafc; --color-sand:#e8dfd1; --color-teal:#177d75; --font-sans:'Inter','Segoe UI',sans-serif; }
-@layer base { body{@apply bg-ivory text-slate-800 antialiased} [x-cloak]{display:none!important} input,select,textarea{@apply rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-teal focus:ring-2 focus:ring-teal/15} label{@apply mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500} table{@apply w-full text-left text-sm} th{@apply bg-slate-50 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500} td{@apply border-t border-slate-100 px-4 py-3} .custom-scrollbar::-webkit-scrollbar{width:4px;height:4px} .custom-scrollbar::-webkit-scrollbar-track{background:transparent} .custom-scrollbar::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:4px} .custom-scrollbar:hover::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.2)} }
+@layer base { html,body{max-width:100%;overflow-x:hidden} body{@apply bg-ivory text-slate-800 antialiased} [x-cloak]{display:none!important} input,select,textarea{@apply rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-teal focus:ring-2 focus:ring-teal/15} label{@apply mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500} table{@apply w-full text-left text-sm} th{@apply bg-slate-50 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500} td{@apply border-t border-slate-100 px-4 py-3} img,svg,video{max-width:100%} .custom-scrollbar::-webkit-scrollbar{width:4px;height:4px} .custom-scrollbar::-webkit-scrollbar-track{background:transparent} .custom-scrollbar::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:4px} .custom-scrollbar:hover::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.2)} }
 @layer components { .card{@apply rounded-2xl border border-white/70 bg-white shadow-sm} .btn{@apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50} .btn-primary{@apply inline-flex items-center justify-center gap-2 rounded-xl bg-ink px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:opacity-50} .btn-teal{@apply inline-flex items-center justify-center gap-2 rounded-xl bg-teal px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-teal/90 disabled:opacity-50} .btn-soft{@apply inline-flex items-center justify-center gap-2 rounded-xl bg-slate-100 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-200 disabled:opacity-50} .badge{@apply inline-flex rounded-full px-2.5 py-1 text-xs font-semibold} }
+
+/* Responsive application defaults */
+@media (max-width: 639px) {
+    input, select, textarea { min-height: 44px; font-size: 16px; }
+    input[type="checkbox"], input[type="radio"] { min-height: 0; width: 20px; height: 20px; }
+    .btn, .btn-primary, .btn-teal, .btn-soft { min-height: 44px; padding-inline: 14px; }
+    h1 { overflow-wrap: anywhere; }
+    th, td { padding: 10px 12px; white-space: nowrap; }
+    .card:has(> table) { max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .card:has(> table) > table { min-width: 640px; }
+    [x-data="appLayout"] main > header { gap: 8px; padding-inline: 10px; }
+    [x-data="appLayout"] main > header > div:nth-child(2) .text-xs { display: none; }
+    [x-data="appLayout"] main > header .btn,
+    [x-data="appLayout"] main > header .btn-teal { min-height: 40px; padding: 8px 10px; font-size: 12px; }
+    [x-data="appLayout"] main > header + div { padding: 14px; }
+    [x-data="appLayout"] aside { width: min(18rem, calc(100vw - 44px)) !important; }
+    [x-data="appLayout"] main > div > div[style*="position: fixed"] { left: 12px !important; right: 12px !important; width: auto !important; }
+    .pos-app-header { gap: 8px; }
+    .pos-app-header > div:first-child { gap: 8px; min-width: 0; }
+    .pos-app-header > div:first-child > .h-6 { display: none; }
+    .pos-app-header > div:first-child .text-xs { display: none; }
+    .pos-app-header > div:last-child { gap: 6px; }
+    .pos-app-header > div:last-child > .h-6,
+    .pos-app-header > div:last-child > div:last-child { display: none; }
+    .pos-app-header .btn, .pos-app-header .btn-teal { min-height: 38px; padding: 7px 9px; font-size: 11px; }
+}
+
+/* POS: compact catalogue on phones, side-by-side workspace on tablets. */
+@media (min-width: 1024px) {
+    .pos-shell > .grid { grid-template-columns: minmax(0, 1fr) 390px; }
+}
+
+@media (max-width: 1023px) {
+    .pos-shell > .grid { display: block; min-height: calc(100dvh - 112px); }
+    .pos-shell > .grid > section { padding-bottom: 92px; }
+    .pos-shell > .grid > aside {
+        position: fixed;
+        inset: 56px 0 0;
+        z-index: 50;
+        display: flex;
+        min-width: 0;
+        flex-direction: column;
+        border-left: 0;
+        transform: translateY(105%);
+        transition: transform 220ms ease;
+        box-shadow: 0 -20px 45px rgb(15 23 42 / 0.2);
+    }
+    .pos-shell.cart-open > .grid > aside { transform: translateY(0); }
+    .pos-shell > .grid > aside > div:nth-child(2) { max-height: none; flex: 1; min-height: 0; }
+    .pos-shell > .grid > aside > div:last-child { padding-bottom: max(18px, env(safe-area-inset-bottom)); }
+}
+
+@media (max-width: 639px) {
+    .pos-shell > div:first-child { padding: 12px; }
+    .pos-shell > div:first-child h1 { font-size: 20px; line-height: 1.2; }
+    .pos-shell > div:first-child p { display: none; }
+    .pos-shell > .grid > section { padding: 12px 10px 96px; }
+    .pos-shell > .grid > section > div:first-child { margin-bottom: 10px; }
+    .pos-shell > .grid > section > div:first-child .btn { min-height: 38px; padding: 7px 11px; font-size: 12px; }
+    .pos-shell > .grid > section > .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+    .pos-shell > .grid > section > .grid > button { min-width: 0; padding: 10px; }
+    .pos-shell > .grid > section > .grid > button > div:first-child { height: 72px; margin-bottom: 10px; }
+    .pos-shell > .grid > section > .grid > button > .flex.justify-between.gap-2 { display: block; }
+    .pos-shell > .grid > section > .grid > button > .flex.justify-between.gap-2 > .text-right { margin-top: 5px; text-align: left; }
+    .pos-cart-line { align-items: stretch; flex-wrap: wrap; gap: 8px; padding: 10px; }
+    .pos-cart-product { flex-basis: calc(100% - 40px); min-width: 0; }
+    .pos-cart-controls { width: 100%; display: grid; grid-template-columns: minmax(68px, .8fr) minmax(84px, 1fr) minmax(100px, 1.2fr) 36px; gap: 6px; }
+    .pos-cart-controls > div { width: auto; min-width: 0; }
+    .pos-cart-controls input, .pos-cart-controls select { height: 42px; font-size: 14px; }
+    .pos-shell > .grid > aside > div:first-child { padding: 14px; }
+    .pos-shell > .grid > aside > div:nth-child(2) { padding: 10px; }
+    .pos-shell > .grid > aside > div:last-child { padding: 14px; }
+    .pos-shell > .grid > aside > div:last-child .grid-cols-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .pos-shell > [x-show="showPaymentModal"] { align-items: flex-end; padding-top: 20px; }
+    .pos-shell > [x-show="showPaymentModal"] > div { max-height: calc(100dvh - 20px); border-radius: 18px 18px 0 0; }
+    .pos-shell > [x-show="showPaymentModal"] > div > div:nth-child(3) { display: flex; max-height: calc(100dvh - 145px); flex-direction: column; }
+    .pos-shell > [x-show="showPaymentModal"] > div > div:nth-child(3) > div:first-child { padding: 14px; }
+    .pos-shell > [x-show="showPaymentModal"] > div > div:nth-child(3) > div:first-child .flex.gap-4 { flex-direction: column; gap: 12px; }
+    .pos-shell > [x-show="showPaymentModal"] > div > div:nth-child(3) > div:last-child { width: auto; padding: 14px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .pos-shell > [x-show="showPaymentModal"] > div > div:nth-child(3) > div:last-child > div { margin: 0; }
+    .pos-shell > [x-show="showPaymentModal"] > div > div:nth-child(4) { position: sticky; bottom: 0; }
+    .pos-shell > [x-show="showPaymentModal"] > div > div:nth-child(4) button { flex: 1; padding-inline: 12px; }
+    .pos-shell > [x-show="editModal"] { align-items: flex-end; }
+    .pos-shell > [x-show="editModal"] > div { border-radius: 18px 18px 0 0; }
+}

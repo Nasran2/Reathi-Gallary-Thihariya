@@ -9,7 +9,7 @@
 </head>
 <body class="min-h-full bg-slate-50">
     <main class="flex min-h-screen min-w-0 flex-1 flex-col">
-        <header class="sticky top-0 z-20 flex h-14 items-center justify-between border-b border-slate-800 bg-ink px-4 lg:px-8 text-white">
+        <header class="pos-app-header sticky top-0 z-20 flex min-h-14 items-center justify-between border-b border-slate-800 bg-ink px-3 py-2 text-white sm:px-4 lg:px-8">
             <div class="flex items-center gap-4">
                 <a href="{{ route('dashboard') }}" class="flex items-center gap-3 hover:text-slate-300">
                     <div class="grid h-8 w-8 place-items-center rounded bg-teal font-serif text-lg">R</div>
@@ -38,18 +38,18 @@
         
         <div class="flex-1 p-4 lg:p-6">
             <!-- Toast Notifications -->
-            <div style="position: fixed; top: 1.25rem; right: 1.25rem; z-index: 9999; pointer-events: none; display: flex; flex-direction: column; gap: 0.75rem; width: 20rem; max-width: 100%;">
+            <div class="fixed top-5 right-4 sm:right-5 z-50 flex flex-col gap-3 w-full sm:w-80 max-w-[calc(100vw-2rem)] sm:max-w-full pointer-events-none">
                 @if(session('success'))
-                    <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 7000)" x-transition.opacity.duration.500ms class="flex items-start gap-3 p-4 rounded-xl shadow-lg border bg-emerald-50 border-emerald-200 text-emerald-800" style="pointer-events: auto;">
+                    <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 7000)" x-transition.opacity.duration.500ms class="pointer-events-auto flex items-start gap-3 p-4 rounded-xl shadow-lg border bg-emerald-50 border-emerald-200 text-emerald-800">
                         <div class="flex-1 text-sm">{{ session('success') }}</div>
-                        <button @click="show = false" class="text-emerald-500 hover:text-emerald-700">
+                        <button @click="show = false" class="text-emerald-500 hover:text-emerald-700 shrink-0">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                         </button>
                     </div>
                 @endif 
                 
                 @if($errors->any())
-                    <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 7000)" x-transition.opacity.duration.500ms class="flex items-start gap-3 p-4 rounded-xl shadow-lg border bg-red-50 border-red-200 text-red-800" style="pointer-events: auto;">
+                    <div x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 7000)" x-transition.opacity.duration.500ms class="pointer-events-auto flex items-start gap-3 p-4 rounded-xl shadow-lg border bg-red-50 border-red-200 text-red-800">
                         <div class="flex-1 text-sm">
                             <strong>Please fix the following:</strong>
                             <ul class="mt-1 list-disc pl-5">
@@ -58,7 +58,7 @@
                                 @endforeach
                             </ul>
                         </div>
-                        <button @click="show = false" class="text-red-500 hover:text-red-700 mt-0.5">
+                        <button @click="show = false" class="text-red-500 hover:text-red-700 mt-0.5 shrink-0">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                         </button>
                     </div>

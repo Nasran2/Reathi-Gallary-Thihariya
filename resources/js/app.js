@@ -21,12 +21,20 @@ Alpine.data('appLayout', () => ({
     menu: false,
     collapsed: localStorage.getItem('sidebarCollapsed') === 'true',
     hoverExpand: false,
+    mobile: window.matchMedia('(max-width: 1023px)').matches,
 
     get isCollapsed() {
-        return this.collapsed && !this.hoverExpand;
+        return !this.mobile && this.collapsed && !this.hoverExpand;
     },
 
     init() {
+        const mobileQuery = window.matchMedia('(max-width: 1023px)');
+        const syncViewport = event => {
+            this.mobile = event.matches;
+            if (!event.matches) this.menu = false;
+        };
+
+        mobileQuery.addEventListener('change', syncViewport);
         this.$watch('collapsed', value => {
             localStorage.setItem('sidebarCollapsed', value);
         });
@@ -49,6 +57,7 @@ Alpine.data('appLayout', () => ({
     },
 
     toggleSidebar() {
+        if (this.mobile) return;
         this.collapsed = !this.collapsed;
         this.hoverExpand = false;
     },
