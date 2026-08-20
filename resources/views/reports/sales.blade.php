@@ -26,6 +26,14 @@
             @endforeach
         </select>
     </div>
+    <div>
+        <label class="block text-sm font-semibold text-slate-700 mb-1">Type</label>
+        <select name="type" class="rounded-xl border-slate-200 py-2.5 px-3 w-36 bg-white" onchange="document.getElementById('filter-form').submit()">
+            <option value="">All Types</option>
+            <option value="main" {{ request('type') == 'main' ? 'selected' : '' }}>Main</option>
+            <option value="remnant" {{ request('type') == 'remnant' ? 'selected' : '' }}>Remnant</option>
+        </select>
+    </div>
     <input type="hidden" name="export" id="hidden-export" value="">
 @endcomponent
 

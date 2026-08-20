@@ -49,6 +49,10 @@ class ReportController extends Controller
             $query->where('customer_id', $r->customer_id);
         }
 
+        if ($r->filled('type')) {
+            $query->where('sale_type', $r->type);
+        }
+
         $sales = $query->orderBy('sold_at', 'desc')->get();
         $customers = Customer::orderBy('name')->get();
 
@@ -184,6 +188,10 @@ class ReportController extends Controller
             $query->where('category_id', $r->category_id);
         }
 
+        if ($r->filled('base_unit_id')) {
+            $query->where('base_unit_id', $r->base_unit_id);
+        }
+
         $rows = $query->get()->map(function ($p) use ($type) {
             $main = $p->balances->where('inventory_type', 'main')->sum('quantity');
             $remnant = $p->balances->where('inventory_type', 'remnant')->sum('quantity');
@@ -208,10 +216,11 @@ class ReportController extends Controller
         });
 
         $categories = Category::orderBy('name')->get();
+        $units = \App\Models\Unit::orderBy('name')->get();
         $from = now();
         $to = now();
 
-        return $this->render($r, 'reports.valuation', compact('rows', 'type', 'categories', 'from', 'to'), 'Stock Valuation Report');
+        return $this->render($r, 'reports.valuation', compact('rows', 'type', 'categories', 'units', 'from', 'to'), 'Stock Valuation Report');
     }
 
     public function deadStock(Request $r)
