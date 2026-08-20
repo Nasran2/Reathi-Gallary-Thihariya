@@ -81,6 +81,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/cheques/{cheque}/return', [ChequeController::class, 'returnCheque'])->name('cheques.return');
     Route::post('/cheques/{cheque}/endorse', [ChequeController::class, 'endorse'])->name('cheques.endorse');
     Route::post('/cheques/{cheque}/cancel', [ChequeController::class, 'cancel'])->name('cheques.cancel');
+    Route::get('/reports/low-stock', [ReportController::class, 'lowStock'])->name('reports.low-stock');
     Route::get('/reports/profit-loss', [ReportController::class, 'profit'])->name('reports.profit');
     Route::get('/reports/stock-valuation', [ReportController::class, 'valuation'])->name('reports.valuation');
     Route::get('/reports/dead-stock', [ReportController::class, 'deadStock'])->name('reports.dead');
