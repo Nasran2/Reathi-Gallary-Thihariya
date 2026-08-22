@@ -337,7 +337,7 @@ return [
                     ['name' => 'sms_textit_id', 'label' => 'TextIt ID', 'type' => 'text'],
                     ['name' => 'sms_password', 'label' => 'Password / API credential', 'type' => 'password', 'placeholder' => 'Enter to set or replace'],
                     ['name' => 'sms_timeout', 'label' => 'Timeout seconds', 'type' => 'number', 'default' => 10],
-                    ['name' => 'sms_template', 'label' => 'SMS template', 'type' => 'textarea', 'full' => true, 'default' => 'Thank you for shopping at {business_name}. Invoice: {invoice_no} Total: {total} Paid: {paid} Due: {due} View Bill: {invoice_url}', 'help' => 'Placeholders: {customer_name}, {business_name}, {invoice_no}, {invoice_date}, {total}, {paid}, {due}, {invoice_url}'],
+                    ['name' => 'sms_template', 'label' => 'SMS template', 'type' => 'textarea', 'full' => true, 'default' => "Thank you for shopping at {business_name}.\nInvoice: {invoice_no}\nItems:\n{items}\nTotal: {total}\nPaid: {paid}\nDue: {due}\nView Bill: {invoice_url}", 'help' => 'Placeholders: {customer_name}, {business_name}, {invoice_no}, {invoice_date}, {total}, {paid}, {due}, {items}, {invoice_url}'],
                 ]
             ]
         ]

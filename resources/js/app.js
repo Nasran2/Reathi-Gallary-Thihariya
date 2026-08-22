@@ -267,7 +267,7 @@ document.addEventListener('submit', event => {
 });
 
 // These components still live beside their Blade templates. Registering them
-// with Alpine keeps them compatible with the CSP evaluator without eval().
+// with Alpine keeps them compatible with the CSP-safe expression evaluator.
 [
     'adjust',
     'brandManager',

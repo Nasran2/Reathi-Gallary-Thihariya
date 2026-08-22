@@ -96,4 +96,87 @@
     @endforeach
 </form>
 
+@if($section === 'sms')
+    @php
+        // Fetch paginated sms logs
+        $smsLogs = \App\Models\SmsLog::with(['customer', 'user'])->latest()->paginate(10)->withQueryString();
+    @endphp
+    <div class="mt-8 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden p-6 w-full" x-data="{ responseContent: '' }">
+        <h2 class="font-bold text-slate-800 text-lg mb-4">Recent SMS Logs</h2>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm text-left">
+                <thead class="text-xs text-slate-500 bg-slate-50 uppercase border-b border-slate-200">
+                    <tr>
+                        <th class="px-4 py-3">Date</th>
+                        <th class="px-4 py-3">Customer</th>
+                        <th class="px-4 py-3">Phone</th>
+                        <th class="px-4 py-3 w-1/3">Message</th>
+                        <th class="px-4 py-3">Status</th>
+                        <th class="px-4 py-3 w-1/4">Response</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    @forelse($smsLogs as $log)
+                        <tr>
+                            <td class="px-4 py-3 whitespace-nowrap">{{ $log->created_at->format('d M Y H:i:s') }}<br><span class="text-[10px] text-slate-400">By: {{ $log->user?->name ?? 'System' }}</span></td>
+                            <td class="px-4 py-3 whitespace-nowrap font-medium text-slate-700">
+                                @if($log->customer)
+                                    <a href="{{ route('customers.show', $log->customer) }}" class="text-blue-600 hover:underline">{{ $log->customer->name }}</a>
+                                @else
+                                    -
+                                @endif
+                            </td>
+                            <td class="px-4 py-3 whitespace-nowrap">{{ $log->phone }}</td>
+                            <td class="px-4 py-3 text-xs text-slate-600">{{ $log->message }}</td>
+                            <td class="px-4 py-3 whitespace-nowrap">
+                                @if($log->status === 'sent')
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-100 text-emerald-800">Sent</span>
+                                @elseif($log->status === 'pending')
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800">Pending</span>
+                                @else
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">Failed</span>
+                                @endif
+                            </td>
+                            <td class="px-4 py-3 text-xs text-slate-500">
+                                @if($log->gateway_response)
+                                    <button type="button" data-response="{{ $log->gateway_response }}" @click="responseContent = $el.dataset.response" class="text-left text-blue-600 hover:underline line-clamp-2">
+                                        {{ Str::limit($log->gateway_response, 50) }}
+                                    </button>
+                                @else
+                                    -
+                                @endif
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="6" class="px-4 py-8 text-center text-slate-500">No SMS logs found.</td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+        
+        @if($smsLogs->hasPages())
+            <div class="mt-4 border-t border-slate-100 pt-4">
+                {{ $smsLogs->links() }}
+            </div>
+        @endif
+
+        <!-- Response Modal -->
+        <template x-teleport="body">
+            <div x-show="responseContent !== ''" style="display:none;" class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 p-4">
+                <div @click.away="responseContent = ''" class="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl max-h-[80vh] flex flex-col">
+                    <h3 class="font-serif text-xl mb-4 text-ink">Gateway Response</h3>
+                    <div class="flex-1 overflow-y-auto mb-6 bg-slate-50 p-4 rounded-lg border border-slate-200">
+                        <pre class="text-xs text-slate-700 whitespace-pre-wrap break-all" x-text="responseContent"></pre>
+                    </div>
+                    <div class="flex justify-end shrink-0">
+                        <button type="button" @click="responseContent = ''" class="btn-soft">Close</button>
+                    </div>
+                </div>
+            </div>
+        </template>
+    </div>
+@endif
+
 @endsection
