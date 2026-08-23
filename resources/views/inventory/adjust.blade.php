@@ -46,49 +46,55 @@ $catalog = $products->map(fn($p) => [
                 <tbody>
                     <template x-for="(item, index) in items" :key="item.key">
                         <tr class="border-b border-slate-100 last:border-0 hover:bg-slate-50/50">
-                            <td class="px-4 py-3">
+                            <td class="px-4 py-3 align-top">
                                 <div class="font-medium text-ink" x-text="item.name"></div>
                                 <div class="text-xs text-slate-500" x-text="'SKU: ' + item.sku"></div>
                                 <input type="hidden" :name="`items[${index}][product_id]`" :value="item.id">
                             </td>
-                            <td class="px-4 py-3 space-y-2">
-                                <select class="w-full text-sm py-1.5" :name="`items[${index}][store_id]`" required>
-                                    @foreach($stores as $s)
-                                    <option value="{{ $s->id }}">{{ $s->name }}</option>
-                                    @endforeach
-                                </select>
-                                <select class="w-full text-sm py-1.5" :name="`items[${index}][inventory_type]`" required>
-                                    <option value="main">Main inventory</option>
-                                    <option value="remnant">Remnant inventory</option>
-                                </select>
+                            <td class="px-4 py-3 align-top">
+                                <div class="flex flex-col gap-2">
+                                    <select class="w-full text-sm py-1.5" :name="`items[${index}][store_id]`" required>
+                                        @foreach($stores as $s)
+                                        <option value="{{ $s->id }}">{{ $s->name }}</option>
+                                        @endforeach
+                                    </select>
+                                    <select class="w-full text-sm py-1.5" :name="`items[${index}][inventory_type]`" required>
+                                        <option value="main">Main inventory</option>
+                                        <option value="remnant">Remnant inventory</option>
+                                    </select>
+                                </div>
                             </td>
-                            <td class="px-4 py-3">
+                            <td class="px-4 py-3 align-top">
                                 <select class="w-full text-sm py-1.5" :name="`items[${index}][direction]`" x-model="item.direction" required>
                                     <option value="increase">Increase (+)</option>
                                     <option value="decrease">Decrease (-)</option>
                                 </select>
                             </td>
-                            <td class="px-4 py-3 space-y-2">
-                                <select class="w-full text-sm py-1.5" :name="`items[${index}][unit_id]`" required>
-                                    <template x-for="u in item.units">
-                                        <option :value="u.id" x-text="u.label"></option>
-                                    </template>
-                                </select>
-                                <input class="w-full text-sm py-1.5" type="number" min="0.001" step="0.001" :name="`items[${index}][quantity]`" x-model="item.quantity" placeholder="Qty" required>
+                            <td class="px-4 py-3 align-top">
+                                <div class="flex flex-col gap-2">
+                                    <select class="w-full text-sm py-1.5" :name="`items[${index}][unit_id]`" required>
+                                        <template x-for="u in item.units">
+                                            <option :value="u.id" x-text="u.label"></option>
+                                        </template>
+                                    </select>
+                                    <input class="w-full text-sm py-1.5" type="number" min="0.001" step="0.001" :name="`items[${index}][quantity]`" x-model="item.quantity" placeholder="Qty" required>
+                                </div>
                             </td>
-                            <td class="px-4 py-3 space-y-2">
-                                <select class="w-full text-sm py-1.5" :name="`items[${index}][reason]`" required>
-                                    <option>Opening Stock</option>
-                                    <option>Damage</option>
-                                    <option>Missing</option>
-                                    <option>Measurement Difference</option>
-                                    <option>Correction</option>
-                                    <option>Write-Off</option>
-                                    <option>Other</option>
-                                </select>
-                                <input class="w-full text-sm py-1.5" type="text" :name="`items[${index}][notes]`" placeholder="Notes (Optional)">
+                            <td class="px-4 py-3 align-top">
+                                <div class="flex flex-col gap-2">
+                                    <select class="w-full text-sm py-1.5" :name="`items[${index}][reason]`" required>
+                                        <option>Opening Stock</option>
+                                        <option>Damage</option>
+                                        <option>Missing</option>
+                                        <option>Measurement Difference</option>
+                                        <option>Correction</option>
+                                        <option>Write-Off</option>
+                                        <option>Other</option>
+                                    </select>
+                                    <input class="w-full text-sm py-1.5" type="text" :name="`items[${index}][notes]`" placeholder="Notes (Optional)">
+                                </div>
                             </td>
-                            <td class="px-4 py-3 text-right">
+                            <td class="px-4 py-3 align-top text-right">
                                 <button type="button" @click="removeItem(index)" class="text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50 transition" title="Remove">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                                 </button>
