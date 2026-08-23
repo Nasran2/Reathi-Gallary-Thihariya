@@ -21,10 +21,10 @@ $catalog = $products->map(fn($p) => [
             <label class="block text-sm font-medium mb-1">Add Product</label>
             <div class="flex gap-2">
                 <div class="flex-1" wire:ignore>
-                    <select class="w-full" x-model.number="searchProduct" x-init="initTomSelect($el, {onChange: function(val) { $data.searchProduct = val; $data.addItem(); }})">
+                    <select class="w-full" x-init="initSelect($el)">
                         <option value="">Select a product to add...</option>
                         @foreach($products as $p)
-                        <option value="{{ $p->id }}">{{ $p->name }} · {{ $p->sku }}</option>
+                        <option value="{{ $p->id }}" data-search="{{ $p->name }} {{ $p->sku }} {{ $p->barcode }}">{{ $p->name }} · {{ $p->sku }}</option>
                         @endforeach
                     </select>
                 </div>
@@ -117,6 +117,17 @@ function adjust(catalog) {
         catalog: catalog,
         searchProduct: '',
         items: [],
+        
+        initSelect(el) {
+            new window.TomSelect(el, {
+                searchField: ['text', 'search'],
+                onChange: (val) => {
+                    this.searchProduct = val;
+                    this.addItem();
+                }
+            });
+        },
+        
         addItem() {
             if (!this.searchProduct) return;
             let product = this.catalog.find(p => p.id == this.searchProduct);
@@ -132,7 +143,7 @@ function adjust(catalog) {
                 });
             }
             // Clear tom-select selection gracefully
-            let sel = document.querySelector('select[name="product_id"]');
+            let sel = document.querySelector('select[x-init="initSelect($el)"]');
             if(sel && sel.tomselect) {
                 sel.tomselect.clear(true);
             }
