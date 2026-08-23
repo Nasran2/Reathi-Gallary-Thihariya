@@ -16,7 +16,7 @@ $catalog = $products->map(fn($p) => [
 
     <form class="card p-6" method="post" action="{{ route('inventory.adjust.store') }}">
         @csrf
-        <input type="hidden" name="items_json" :value="JSON.stringify(items)">
+        <input type="hidden" name="items_json" :value="itemsJson">
 
         <div class="mb-6">
             <label class="block text-sm font-medium mb-1">Add Product</label>
@@ -113,7 +113,7 @@ $catalog = $products->map(fn($p) => [
         </div>
 
         <div class="mt-6 flex justify-end">
-            <button type="submit" class="btn-teal px-8" :disabled="items.length === 0 || items.some(i => !i.store_id || !i.unit_id)">Post Adjustments</button>
+            <button type="submit" class="btn-teal px-8" :disabled="isInvalid">Post Adjustments</button>
         </div>
     </form>
 </div>
@@ -125,6 +125,14 @@ function adjust(catalog) {
         catalog: catalog,
         searchProduct: '',
         items: [],
+        
+        get itemsJson() {
+            return JSON.stringify(this.items);
+        },
+        
+        get isInvalid() {
+            return this.items.length === 0 || this.items.some(i => !i.store_id || !i.unit_id);
+        },
         
         initSelect(el) {
             new window.TomSelect(el, {
@@ -146,7 +154,7 @@ function adjust(catalog) {
                     name: product.name,
                     sku: product.sku,
                     units: product.units,
-                    store_id: '',
+                    store_id: '{{ $stores->first()->id ?? '' }}',
                     inventory_type: 'main',
                     direction: 'increase',
                     unit_id: product.units.length ? product.units[0].id : '',
