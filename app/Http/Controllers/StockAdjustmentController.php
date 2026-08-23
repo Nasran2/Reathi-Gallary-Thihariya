@@ -12,11 +12,38 @@ use Illuminate\Support\Facades\DB;
 
 class StockAdjustmentController extends Controller
 {
-    public function index()
+    public function index(Request $r)
     {
         $this->authorize('inventory.adjust');
-        $adjustments = StockAdjustment::with('user')->withCount('items')->latest()->paginate(20);
-        return view('inventory.adjustments.index', compact('adjustments'));
+        $adjustments = StockAdjustment::with('user')->withCount('items')
+            ->when($r->start_date, fn($q, $v) => $q->whereDate('created_at', '>=', $v))
+            ->when($r->end_date, fn($q, $v) => $q->whereDate('created_at', '<=', $v))
+            ->when($r->user_id, fn($q, $v) => $q->where('user_id', $v))
+            ->latest()
+            ->paginate(20)
+            ->withQueryString();
+            
+        $users = \App\Models\User::orderBy('name')->get();
+            
+        return view('inventory.adjustments.index', compact('adjustments', 'users'));
+    }
+
+    public function report(Request $r)
+    {
+        $this->authorize('inventory.adjust');
+        $items = \App\Models\StockAdjustmentItem::with(['adjustment.user', 'product', 'store', 'unit'])
+            ->when($r->start_date, fn($q, $v) => $q->whereHas('adjustment', fn($q2) => $q2->whereDate('created_at', '>=', $v)))
+            ->when($r->end_date, fn($q, $v) => $q->whereHas('adjustment', fn($q2) => $q2->whereDate('created_at', '<=', $v)))
+            ->when($r->user_id, fn($q, $v) => $q->whereHas('adjustment', fn($q2) => $q2->where('user_id', $v)))
+            ->when($r->store_id, fn($q, $v) => $q->where('store_id', $v))
+            ->latest()
+            ->paginate(30)
+            ->withQueryString();
+
+        $users = \App\Models\User::orderBy('name')->get();
+        $stores = \App\Models\Store::orderBy('name')->get();
+
+        return view('inventory.adjustments.report', compact('items', 'users', 'stores'));
     }
 
     public function create()

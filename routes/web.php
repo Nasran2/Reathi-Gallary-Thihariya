@@ -77,6 +77,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/inventory', [InventoryController::class, 'index'])->name('inventory.index')->middleware('permission:inventory.view');
     Route::get('/inventory/movements', [InventoryController::class, 'movements'])->name('inventory.movements')->middleware('permission:inventory.view');
     Route::get('/inventory/adjustments', [StockAdjustmentController::class, 'index'])->name('inventory.adjustments.index')->middleware('permission:inventory.adjust');
+    Route::get('/inventory/adjustments/report', [StockAdjustmentController::class, 'report'])->name('inventory.adjustments.report')->middleware('permission:inventory.adjust');
     Route::get('/inventory/adjustments/create', [StockAdjustmentController::class, 'create'])->name('inventory.adjust')->middleware('permission:inventory.adjust');
     Route::post('/inventory/adjustments', [StockAdjustmentController::class, 'store'])->name('inventory.adjust.store')->middleware('permission:inventory.adjust');
     Route::get('/inventory/adjustments/{adjustment}', [StockAdjustmentController::class, 'show'])->name('inventory.adjustments.show')->middleware('permission:inventory.adjust');

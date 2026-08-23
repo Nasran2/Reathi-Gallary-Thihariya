@@ -14,6 +14,30 @@
         </a>
     </div>
 
+    <form method="GET" class="card p-4 mb-6 grid grid-cols-1 sm:grid-cols-4 gap-4 items-end">
+        <div>
+            <label class="block text-xs font-medium text-slate-500 mb-1">Start Date</label>
+            <input type="date" name="start_date" value="{{ request('start_date') }}" class="w-full text-sm border-slate-200 rounded-lg">
+        </div>
+        <div>
+            <label class="block text-xs font-medium text-slate-500 mb-1">End Date</label>
+            <input type="date" name="end_date" value="{{ request('end_date') }}" class="w-full text-sm border-slate-200 rounded-lg">
+        </div>
+        <div>
+            <label class="block text-xs font-medium text-slate-500 mb-1">User</label>
+            <select name="user_id" class="w-full text-sm border-slate-200 rounded-lg">
+                <option value="">All Users</option>
+                @foreach($users as $user)
+                <option value="{{ $user->id }}" {{ request('user_id') == $user->id ? 'selected' : '' }}>{{ $user->name }}</option>
+                @endforeach
+            </select>
+        </div>
+        <div class="flex gap-2">
+            <button type="submit" class="btn bg-slate-100 text-slate-700 hover:bg-slate-200 flex-1">Filter</button>
+            <a href="{{ route('inventory.adjustments.index') }}" class="btn bg-white border border-slate-200 text-slate-500 hover:bg-slate-50 shrink-0">Clear</a>
+        </div>
+    </form>
+
     <div class="card overflow-x-auto">
         <table class="w-full text-left text-sm whitespace-nowrap">
             <thead>
