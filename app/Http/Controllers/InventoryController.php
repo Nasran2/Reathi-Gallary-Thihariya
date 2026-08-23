@@ -141,6 +141,16 @@ class InventoryController extends Controller
     public function adjust(Request $r, InventoryService $service)
     {
         $this->authorize('inventory.adjust');
+        
+        if ($r->has('items_json')) {
+            $items = json_decode($r->input('items_json'), true);
+            if (is_array($items)) {
+                $r->merge(['items' => $items]);
+            }
+        }
+        
+        \Log::info('Adjust form submitted:', $r->all());
+        
         $d = $r->validate([
             'items' => 'required|array|min:1',
             'items.*.product_id' => 'required|exists:products,id',

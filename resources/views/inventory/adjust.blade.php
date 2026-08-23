@@ -16,6 +16,7 @@ $catalog = $products->map(fn($p) => [
 
     <form class="card p-6" method="post" action="{{ route('inventory.adjust.store') }}">
         @csrf
+        <input type="hidden" name="items_json" :value="JSON.stringify(items)">
 
         <div class="mb-6">
             <label class="block text-sm font-medium mb-1">Add Product</label>
@@ -49,40 +50,41 @@ $catalog = $products->map(fn($p) => [
                             <td class="px-4 py-3 align-top">
                                 <div class="font-medium text-ink" x-text="item.name"></div>
                                 <div class="text-xs text-slate-500" x-text="'SKU: ' + item.sku"></div>
-                                <input type="hidden" :name="`items[${index}][product_id]`" :value="item.id">
                             </td>
                             <td class="px-4 py-3 align-top">
                                 <div class="flex flex-col gap-2">
-                                    <select class="w-full text-sm py-1.5" :name="`items[${index}][store_id]`" required>
+                                    <select class="w-full text-sm py-1.5" x-model="item.store_id" required>
+                                        <option value="">Select Store</option>
                                         @foreach($stores as $s)
                                         <option value="{{ $s->id }}">{{ $s->name }}</option>
                                         @endforeach
                                     </select>
-                                    <select class="w-full text-sm py-1.5" :name="`items[${index}][inventory_type]`" required>
+                                    <select class="w-full text-sm py-1.5" x-model="item.inventory_type" required>
                                         <option value="main">Main inventory</option>
                                         <option value="remnant">Remnant inventory</option>
                                     </select>
                                 </div>
                             </td>
                             <td class="px-4 py-3 align-top">
-                                <select class="w-full text-sm py-1.5" :name="`items[${index}][direction]`" x-model="item.direction" required>
+                                <select class="w-full text-sm py-1.5" x-model="item.direction" required>
                                     <option value="increase">Increase (+)</option>
                                     <option value="decrease">Decrease (-)</option>
                                 </select>
                             </td>
                             <td class="px-4 py-3 align-top">
                                 <div class="flex flex-col gap-2">
-                                    <select class="w-full text-sm py-1.5" :name="`items[${index}][unit_id]`" required>
+                                    <select class="w-full text-sm py-1.5" x-model="item.unit_id" required>
+                                        <option value="">Select Unit</option>
                                         <template x-for="u in item.units">
                                             <option :value="u.id" x-text="u.label"></option>
                                         </template>
                                     </select>
-                                    <input class="w-full text-sm py-1.5" type="number" min="0.001" step="0.001" :name="`items[${index}][quantity]`" x-model="item.quantity" placeholder="Qty" required>
+                                    <input class="w-full text-sm py-1.5" type="number" min="0.001" step="0.001" x-model.number="item.quantity" placeholder="Qty" required>
                                 </div>
                             </td>
                             <td class="px-4 py-3 align-top">
                                 <div class="flex flex-col gap-2">
-                                    <select class="w-full text-sm py-1.5" :name="`items[${index}][reason]`" required>
+                                    <select class="w-full text-sm py-1.5" x-model="item.reason" required>
                                         <option>Opening Stock</option>
                                         <option>Damage</option>
                                         <option>Missing</option>
@@ -91,7 +93,7 @@ $catalog = $products->map(fn($p) => [
                                         <option>Write-Off</option>
                                         <option>Other</option>
                                     </select>
-                                    <input class="w-full text-sm py-1.5" type="text" :name="`items[${index}][notes]`" placeholder="Notes (Optional)">
+                                    <input class="w-full text-sm py-1.5" type="text" x-model="item.notes" placeholder="Notes (Optional)">
                                 </div>
                             </td>
                             <td class="px-4 py-3 align-top text-right">
@@ -111,7 +113,7 @@ $catalog = $products->map(fn($p) => [
         </div>
 
         <div class="mt-6 flex justify-end">
-            <button type="submit" class="btn-teal px-8" :disabled="items.length === 0">Post Adjustments</button>
+            <button type="submit" class="btn-teal px-8" :disabled="items.length === 0 || items.some(i => !i.store_id || !i.unit_id)">Post Adjustments</button>
         </div>
     </form>
 </div>
@@ -140,12 +142,17 @@ function adjust(catalog) {
             if (product) {
                 this.items.push({
                     key: Date.now() + Math.random(),
-                    id: product.id,
+                    product_id: product.id,
                     name: product.name,
                     sku: product.sku,
                     units: product.units,
+                    store_id: '',
+                    inventory_type: 'main',
                     direction: 'increase',
-                    quantity: 1
+                    unit_id: product.units.length ? product.units[0].id : '',
+                    quantity: 1,
+                    reason: 'Opening Stock',
+                    notes: ''
                 });
             }
             // Clear tom-select selection gracefully
