@@ -180,7 +180,7 @@ class SaleService
                 ], $userId);
             }
 
-            PublicInvoiceToken::create(['sale_id' => $sale->id, 'token' => Str::random(64), 'expires_at' => $this->invoiceExpiry()]);
+            PublicInvoiceToken::updateOrCreate(['sale_id' => $sale->id], ['token' => Str::random(64), 'expires_at' => $this->invoiceExpiry()]);
 
             return $sale->load('items.product', 'items.unit', 'payments.method', 'customer', 'publicToken');
         }, 3);
