@@ -44,7 +44,11 @@ class CustomerController extends Controller
 
     public function store(Request $r)
     {
-        Customer::create($this->validated($r) + ['active' => true]);
+        $customer = Customer::create($this->validated($r) + ['active' => true]);
+
+        if ($r->wantsJson() || $r->ajax()) {
+            return response()->json($customer);
+        }
 
         return back()->with('success', 'Customer added.');
     }
@@ -76,7 +80,7 @@ class CustomerController extends Controller
 
     public function update(Request $r, Customer $customer)
     {
-        $customer->update($this->validated($r));
+        $customer->update($this->validated($r, $customer));
 
         return back()->with('success', 'Customer updated.');
     }
@@ -130,8 +134,18 @@ class CustomerController extends Controller
         return back()->with('success', $method->code === 'cheque' ? 'Cheque recorded as pending. It will not count as cleared until passed.' : 'Payment recorded and allocated.');
     }
 
-    private function validated(Request $r): array
+    private function validated(Request $r, ?Customer $customer = null): array
     {
-        return $r->validate(['name' => 'required|max:150', 'mobile' => 'nullable|max:30', 'whatsapp' => 'nullable|max:30', 'email' => 'nullable|email', 'address' => 'nullable', 'credit_limit' => 'nullable|numeric|min:0', 'opening_balance' => 'nullable|numeric', 'notes' => 'nullable']);
+        $id = $customer ? $customer->id : null;
+        return $r->validate([
+            'name' => 'required|max:150', 
+            'mobile' => 'nullable|max:30|unique:customers,mobile,' . $id, 
+            'whatsapp' => 'nullable|max:30', 
+            'email' => 'nullable|email', 
+            'address' => 'nullable', 
+            'credit_limit' => 'nullable|numeric|min:0', 
+            'opening_balance' => 'nullable|numeric', 
+            'notes' => 'nullable'
+        ]);
     }
 }
