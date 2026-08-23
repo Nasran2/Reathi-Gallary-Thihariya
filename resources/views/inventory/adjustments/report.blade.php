@@ -63,7 +63,7 @@
                 <tr class="border-b border-slate-100 last:border-0 hover:bg-slate-50/50">
                     <td class="px-4 py-3 align-top">
                         <div class="font-medium text-ink">{{ $item->adjustment->created_at->format('d M Y, H:i') }}</div>
-                        <a href="{{ route('inventory.adjustments.show', $item->adjustment_id) }}" class="text-xs text-teal hover:underline">Adj #{{ $item->adjustment_id }}</a>
+                        <a href="{{ route('inventory.adjustments.show', $item->stock_adjustment_id) }}" class="text-xs text-teal hover:underline">Adj #{{ $item->stock_adjustment_id }}</a>
                     </td>
                     <td class="px-4 py-3 align-top">
                         <div class="font-medium text-ink">{{ $item->product->name }}</div>
