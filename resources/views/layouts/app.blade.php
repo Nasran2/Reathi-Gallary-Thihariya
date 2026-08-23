@@ -32,6 +32,7 @@ $nav = [
         ['Main Inventory', 'inventory.index', [], 'inventory.view'],
         ['Remnants', 'remnants.index', [], 'inventory.view'],
         ['Stock Transfers', 'transfers.index', [], 'inventory.transfer'],
+        ['Stock Adjustment', 'inventory.adjust', [], 'inventory.adjust'],
     ], 'tabler-building-store'],
     ['Expenses', [
         ['Expenses List', 'expenses.index', [], 'expenses.view'],

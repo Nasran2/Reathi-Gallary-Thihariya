@@ -141,15 +141,41 @@ class InventoryController extends Controller
     public function adjust(Request $r, InventoryService $service)
     {
         $this->authorize('inventory.adjust');
-        $d = $r->validate(['product_id' => 'required|exists:products,id', 'store_id' => 'required|exists:stores,id', 'inventory_type' => 'required|in:main,remnant', 'direction' => 'required|in:increase,decrease', 'quantity' => 'required|numeric|gt:0', 'unit_id' => 'required|exists:units,id', 'reason' => 'required|max:120', 'notes' => 'nullable']);
+        $d = $r->validate([
+            'items' => 'required|array|min:1',
+            'items.*.product_id' => 'required|exists:products,id',
+            'items.*.store_id' => 'required|exists:stores,id',
+            'items.*.inventory_type' => 'required|in:main,remnant',
+            'items.*.direction' => 'required|in:increase,decrease',
+            'items.*.quantity' => 'required|numeric|gt:0',
+            'items.*.unit_id' => 'required|exists:units,id',
+            'items.*.reason' => 'required|max:120',
+            'items.*.notes' => 'nullable'
+        ]);
+
         DB::transaction(function () use ($d, $service, $r) {
-            $p = Product::findOrFail($d['product_id']);
-            $u = $p->productUnits()->where('unit_id', $d['unit_id'])->firstOrFail();
-            $base = Decimal::mul($d['quantity'], $u->conversion_rate, 6);
-            $service->move($p, $d['store_id'], $d['inventory_type'], 'stock_adjustment', $d['direction'] === 'increase' ? $base : 0, $d['direction'] === 'decrease' ? $base : 0, $p->average_cost, null, $r->user()->id, $d['reason'].': '.($d['notes'] ?? ''));
+            foreach ($d['items'] as $item) {
+                $p = Product::findOrFail($item['product_id']);
+                $u = $p->productUnits()->where('unit_id', $item['unit_id'])->firstOrFail();
+                $base = Decimal::mul($item['quantity'], $u->conversion_rate, 6);
+                $notes = $item['reason'] . ($item['notes'] ? ': ' . $item['notes'] : '');
+                
+                $service->move(
+                    $p, 
+                    $item['store_id'], 
+                    $item['inventory_type'], 
+                    'stock_adjustment', 
+                    $item['direction'] === 'increase' ? $base : 0, 
+                    $item['direction'] === 'decrease' ? $base : 0, 
+                    $p->average_cost, 
+                    null, 
+                    $r->user()->id, 
+                    $notes
+                );
+            }
         });
 
-        return redirect()->route('inventory.movements')->with('success', 'Adjustment posted to the stock ledger.');
+        return redirect()->route('inventory.movements')->with('success', count($d['items']) . ' adjustments posted to the stock ledger.');
     }
 
     public function remnants(Request $r)
