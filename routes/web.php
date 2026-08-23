@@ -18,6 +18,7 @@ use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\TransferController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\RoleController;
+use App\Http\Controllers\StockAdjustmentController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -75,8 +76,13 @@ Route::middleware('auth')->group(function () {
     Route::delete('/expenses/categories/{category}', [ExpenseController::class, 'destroyCategory'])->name('expenses.categories.destroy')->middleware('permission:expense_categories.manage');
     Route::get('/inventory', [InventoryController::class, 'index'])->name('inventory.index')->middleware('permission:inventory.view');
     Route::get('/inventory/movements', [InventoryController::class, 'movements'])->name('inventory.movements')->middleware('permission:inventory.view');
-    Route::get('/inventory/adjust', [InventoryController::class, 'adjustmentForm'])->name('inventory.adjust')->middleware('permission:inventory.adjust');
-    Route::post('/inventory/adjust', [InventoryController::class, 'adjust'])->name('inventory.adjust.store')->middleware('permission:inventory.adjust');
+    Route::get('/inventory/adjustments', [StockAdjustmentController::class, 'index'])->name('inventory.adjustments.index')->middleware('permission:inventory.adjust');
+    Route::get('/inventory/adjustments/create', [StockAdjustmentController::class, 'create'])->name('inventory.adjust')->middleware('permission:inventory.adjust');
+    Route::post('/inventory/adjustments', [StockAdjustmentController::class, 'store'])->name('inventory.adjust.store')->middleware('permission:inventory.adjust');
+    Route::get('/inventory/adjustments/{adjustment}', [StockAdjustmentController::class, 'show'])->name('inventory.adjustments.show')->middleware('permission:inventory.adjust');
+    Route::get('/inventory/adjustments/{adjustment}/edit', [StockAdjustmentController::class, 'edit'])->name('inventory.adjustments.edit')->middleware('permission:inventory.adjust');
+    Route::put('/inventory/adjustments/{adjustment}', [StockAdjustmentController::class, 'update'])->name('inventory.adjustments.update')->middleware('permission:inventory.adjust');
+    Route::delete('/inventory/adjustments/{adjustment}', [StockAdjustmentController::class, 'destroy'])->name('inventory.adjustments.destroy')->middleware('permission:inventory.adjust');
     Route::get('/remnants', [InventoryController::class, 'remnants'])->name('remnants.index')->middleware('permission:inventory.view');
     Route::get('/remnants/transfer', [InventoryController::class, 'transferForm'])->name('remnants.transfer')->middleware('permission:inventory.remnant_transfer');
     Route::post('/remnants/transfer', [InventoryController::class, 'transfer'])->name('remnants.transfer.store')->middleware('permission:inventory.remnant_transfer');

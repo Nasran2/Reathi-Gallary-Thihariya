@@ -8,15 +8,41 @@ $catalog = $products->map(fn($p) => [
     'sku' => $p->sku,
     'units' => $p->productUnits->map(fn($u) => ['id' => $u->unit_id, 'label' => $u->unit->name.' ('.$u->unit->symbol.')'])->values()
 ])->values(); 
-@endphp
-<div class="mx-auto max-w-5xl" x-data='adjust(@json($catalog))'>
-    <a class="text-sm text-slate-500 hover:text-teal-600 transition" href="{{ route('inventory.index') }}">← Inventory</a>
-    <h1 class="mt-2 font-serif text-3xl text-ink">Stock adjustment</h1>
-    <p class="mb-6 text-sm text-slate-500">Add multiple products to adjust their stock levels simultaneously.</p>
 
-    <form class="card p-6" method="post" action="{{ route('inventory.adjust.store') }}">
+$initialItems = $adjustment ? $adjustment->items->map(function($i) use ($catalog) {
+    $p = $catalog->firstWhere('id', $i->product_id);
+    return [
+        'key' => uniqid(),
+        'product_id' => $i->product_id,
+        'name' => $p['name'],
+        'sku' => $p['sku'],
+        'units' => $p['units'],
+        'store_id' => $i->store_id,
+        'inventory_type' => $i->inventory_type,
+        'direction' => $i->direction,
+        'unit_id' => $i->unit_id,
+        'quantity' => (float) $i->quantity,
+        'reason' => $i->reason,
+        'notes' => (string) $i->notes,
+    ];
+})->values() : [];
+@endphp
+<div class="mx-auto max-w-5xl" x-data='adjust(@json($catalog), @json($initialItems))'>
+    <a class="text-sm text-slate-500 hover:text-teal-600 transition" href="{{ route('inventory.adjustments.index') }}">← Adjustments History</a>
+    <h1 class="mt-2 font-serif text-3xl text-ink">{{ $adjustment ? 'Edit Adjustment #'.$adjustment->id : 'New Stock Adjustment' }}</h1>
+    <p class="mb-6 text-sm text-slate-500">{{ $adjustment ? 'Modify an existing stock adjustment transaction.' : 'Add multiple products to adjust their stock levels simultaneously.' }}</p>
+
+    <form class="card p-6" method="post" action="{{ $adjustment ? route('inventory.adjustments.update', $adjustment) : route('inventory.adjust.store') }}">
         @csrf
+        @if($adjustment)
+        @method('PUT')
+        @endif
         <input type="hidden" name="items_json" :value="itemsJson">
+
+        <div class="mb-6">
+            <label class="block text-sm font-medium mb-1">Transaction Notes (Optional)</label>
+            <textarea name="notes" class="w-full text-sm py-2 px-3 border border-slate-200 rounded-lg" rows="2" placeholder="Overall reason or reference for this adjustment...">{{ $adjustment->notes ?? old('notes') }}</textarea>
+        </div>
 
         <div class="mb-6">
             <label class="block text-sm font-medium mb-1">Add Product</label>
@@ -113,25 +139,25 @@ $catalog = $products->map(fn($p) => [
         </div>
 
         <div class="mt-6 flex justify-end">
-            <button type="submit" class="btn-teal px-8" :disabled="isInvalid">Post Adjustments</button>
+            <button type="submit" class="btn-teal px-8" :disabled="isInvalid">{{ $adjustment ? 'Save Changes' : 'Post Adjustments' }}</button>
         </div>
     </form>
 </div>
 
 @push('scripts')
 <script>
-function adjust(catalog) {
+function adjust(catalog, initialItems) {
     return {
         catalog: catalog,
         searchProduct: '',
-        items: [],
+        items: initialItems || [],
         
         get itemsJson() {
             return JSON.stringify(this.items);
         },
         
         get isInvalid() {
-            return this.items.length === 0 || this.items.some(i => !i.store_id || !i.unit_id);
+            return this.items.length === 0 || this.items.some(i => !i.store_id || !i.unit_id || i.quantity <= 0);
         },
         
         initSelect(el) {

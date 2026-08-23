@@ -258,6 +258,13 @@ Alpine.data('customerManager', () => ({
     },
 }));
 
+Alpine.data('flash', () => ({
+    show: true,
+    init() {
+        setTimeout(() => this.show = false, 7000);
+    }
+}));
+
 document.addEventListener('submit', event => {
     const form = event.target.closest('form[data-confirm]');
 
