@@ -73,9 +73,13 @@ else{$catalog=$items->map(fn($r)=>['key'=>'r'.$r->id,'product_id'=>$r->product_i
                 <label class="block text-sm font-bold text-slate-700 mb-2">Mobile Number</label>
                 <input type="text" class="w-full" x-model="newCust.mobile" placeholder="07XXXXXXXX">
             </div>
-            <div class="mb-6">
+            <div class="mb-4">
                 <label class="block text-sm font-bold text-slate-700 mb-2">Email</label>
                 <input type="email" class="w-full" x-model="newCust.email" placeholder="email@example.com">
+            </div>
+            <div class="mb-6">
+                <label class="block text-sm font-bold text-slate-700 mb-2">Opening Due (Optional)</label>
+                <input type="number" step="0.01" min="0" class="w-full" x-model="newCust.opening_balance" placeholder="0.00">
             </div>
             <button type="button" @click="saveNewCustomer()" class="w-full rounded-lg bg-indigo-500 py-3 font-bold text-white transition hover:bg-indigo-600" :disabled="savingCustomer"><span x-text="savingCustomer ? 'Saving...' : 'Save Customer'"></span></button>
         </div>
@@ -322,7 +326,7 @@ function saleSuccessModal() {
 @endif
 
 @push('scripts')<script>function pos(catalog,type,methods){return{catalog,type,methods,search:'',category:'',cart:[],customer:'',token:'{{ \Illuminate\Support\Str::uuid() }}',submitting:false,showPaymentModal:false,paymentRows:[],sellNote:'',staffNote:'',paymentError:'',editModal:false,editingLineIndex:null,
-addCustomerModal:false,addCustomerError:'',savingCustomer:false,newCust:{name:'',mobile:'',email:''},
+addCustomerModal:false,addCustomerError:'',savingCustomer:false,newCust:{name:'',mobile:'',email:'',opening_balance:''},
 openEditModal(i){this.editingLineIndex=i;this.editModal=true;},closeEditModal(){this.editModal=false;this.editingLineIndex=null;},showError(msg){this.paymentError=msg;setTimeout(()=>this.paymentError='',4000);},
 saveNewCustomer(){
     if(!this.newCust.name) { this.addCustomerError = 'Name is required'; return; }
@@ -338,7 +342,7 @@ saveNewCustomer(){
         this.savingCustomer = false;
         if(res.ok) {
             this.addCustomerModal = false;
-            this.newCust = {name:'', mobile:'', email:''};
+            this.newCust = {name:'', mobile:'', email:'', opening_balance:''};
             let sel = document.querySelector('select[name="customer_id"]');
             let opt = new Option(`${data.name} ${data.mobile ? '· '+data.mobile : ''}`, data.id);
             sel.add(opt, 1);

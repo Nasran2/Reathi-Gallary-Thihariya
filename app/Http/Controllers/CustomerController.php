@@ -10,6 +10,9 @@ use App\Models\PaymentMethod;
 use App\Models\Sale;
 use App\Models\SaleReturn;
 use App\Models\SmsLog;
+use App\Models\Store;
+use App\Models\PublicInvoiceToken;
+use Illuminate\Support\Str;
 use App\Services\ChequeService;
 use App\Services\PaymentService;
 use Illuminate\Http\Request;
@@ -46,6 +49,26 @@ class CustomerController extends Controller
     {
         $customer = Customer::create($this->validated($r) + ['active' => true]);
 
+        if ($customer->opening_balance > 0) {
+            $store = Store::where('is_default', 1)->first();
+            $sale = Sale::create([
+                'uuid' => Str::uuid(),
+                'invoice_no' => 'OB-' . str_pad($customer->id, 6, '0', STR_PAD_LEFT),
+                'idempotency_key' => Str::random(40),
+                'sale_type' => 'opening_balance',
+                'store_id' => $store ? $store->id : 1,
+                'customer_id' => $customer->id,
+                'user_id' => $r->user()?->id,
+                'status' => 'completed',
+                'subtotal' => $customer->opening_balance,
+                'grand_total' => $customer->opening_balance,
+                'due_total' => $customer->opening_balance,
+                'notes' => 'Opening Balance',
+                'sold_at' => $customer->created_at,
+            ]);
+            PublicInvoiceToken::create(['sale_id' => $sale->id, 'token' => Str::random(64)]);
+        }
+
         if ($r->wantsJson() || $r->ajax()) {
             return response()->json($customer);
         }
@@ -80,7 +103,38 @@ class CustomerController extends Controller
 
     public function update(Request $r, Customer $customer)
     {
+        $oldOb = (float) $customer->opening_balance;
         $customer->update($this->validated($r, $customer));
+        $newOb = (float) $customer->opening_balance;
+
+        if ($oldOb !== $newOb) {
+            $obSale = Sale::where('customer_id', $customer->id)->where('invoice_no', 'like', 'OB-%')->first();
+            if ($obSale) {
+                $obSale->update([
+                    'grand_total' => $newOb,
+                    'due_total' => max(0, $newOb - $obSale->paid_total),
+                    'subtotal' => $newOb,
+                ]);
+            } elseif ($newOb > 0) {
+                $store = Store::where('is_default', 1)->first();
+                $sale = Sale::create([
+                    'uuid' => Str::uuid(),
+                    'invoice_no' => 'OB-' . str_pad($customer->id, 6, '0', STR_PAD_LEFT),
+                    'idempotency_key' => Str::random(40),
+                    'sale_type' => 'opening_balance',
+                    'store_id' => $store ? $store->id : 1,
+                    'customer_id' => $customer->id,
+                    'user_id' => $r->user()?->id,
+                    'status' => 'completed',
+                    'subtotal' => $newOb,
+                    'grand_total' => $newOb,
+                    'due_total' => $newOb,
+                    'notes' => 'Opening Balance',
+                    'sold_at' => $customer->created_at,
+                ]);
+                PublicInvoiceToken::create(['sale_id' => $sale->id, 'token' => Str::random(64)]);
+            }
+        }
 
         return back()->with('success', 'Customer updated.');
     }

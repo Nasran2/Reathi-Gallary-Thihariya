@@ -12,18 +12,27 @@
         </div>
     @endif
 
+    @if($sale->sale_type === 'opening_balance')
+        <div class="mb-5 rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm text-indigo-800 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <i class="ti ti-info-circle-filled text-lg"></i>
+                <span class="font-bold">This is an Opening Balance record, not an actual sale transaction.</span>
+            </div>
+        </div>
+    @endif
+
     <div class="mb-5 flex flex-wrap items-center justify-between gap-4 bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
         <div>
             <a class="text-sm text-slate-500 hover:text-slate-700" href="{{ route('sales.index') }}">← Back to Sales</a>
             <div class="flex items-center gap-3 mt-1">
                 <h1 class="font-serif text-3xl text-ink">{{ $sale->invoice_no }}</h1>
-                <span class="badge {{ $sale->sale_type==='remnant'?'bg-amber-100 text-amber-800':'bg-teal/10 text-teal' }}">{{ strtoupper($sale->sale_type) }}</span>
+                <span class="badge {{ $sale->sale_type==='remnant'?'bg-amber-100 text-amber-800':($sale->sale_type==='opening_balance'?'bg-indigo-100 text-indigo-800':'bg-teal/10 text-teal') }}">{{ strtoupper(str_replace('_', ' ', $sale->sale_type)) }}</span>
             </div>
             <p class="text-sm text-slate-500 mt-1">{{ $sale->sold_at->format('d M Y, H:i A') }} · <span class="font-semibold">{{ $sale->customer?->name ?? 'Walk-in Customer' }}</span></p>
         </div>
         
         <div class="flex flex-wrap items-center gap-3">
-            <a href="{{ route('pos.'.$sale->sale_type) }}" class="px-4 py-2 bg-slate-100 text-slate-700 font-bold rounded-lg hover:bg-slate-200 transition">
+            <a href="{{ route('pos.'.($sale->sale_type === 'opening_balance' ? 'main' : $sale->sale_type)) }}" class="px-4 py-2 bg-slate-100 text-slate-700 font-bold rounded-lg hover:bg-slate-200 transition">
                 New Sale
             </a>
             <a href="{{ route('invoice.public', $sale->publicToken->token) }}" target="_blank" class="px-4 py-2 border border-slate-200 text-slate-700 font-bold rounded-lg hover:bg-slate-50 transition">
@@ -35,7 +44,9 @@
             <button @click="openSmsModal()" class="px-4 py-2 bg-emerald-500 text-white font-bold rounded-lg hover:bg-emerald-600 transition shadow-sm flex items-center gap-2">
                 <i class="ti ti-message-circle"></i> Send SMS
             </button>
+            @if($sale->sale_type !== 'opening_balance')
             <a href="{{ route('sales.returns',['sale_id'=>$sale->id]) }}" class="px-4 py-2 bg-amber-100 text-amber-800 font-bold rounded-lg">Return Items</a>
+            @endif
         </div>
     </div>
 
