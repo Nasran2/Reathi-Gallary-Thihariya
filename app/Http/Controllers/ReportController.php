@@ -208,6 +208,51 @@ class ReportController extends Controller
         return $this->render($r, 'reports.daily-closing', $data, 'Daily Closing Report - '.$date->format('Y-m-d'));
     }
 
+    public function ledger(Request $r)
+    {
+        $this->authorize('reports.ledger');
+        [$from, $to] = $this->dates($r);
+
+        $salesQuery = Sale::with('customer');
+        $expensesQuery = Expense::with('category');
+
+        if ($from && $to) {
+            $salesQuery->whereBetween('sold_at', [$from->startOfDay(), $to->endOfDay()]);
+            // Assuming expense_date is date or datetime
+            $expensesQuery->whereBetween('expense_date', [$from->startOfDay(), $to->endOfDay()]);
+        }
+
+        $sales = $salesQuery->get()->map(function($sale) {
+            return (object)[
+                'date' => $sale->sold_at,
+                'type' => 'Sale',
+                'reference' => $sale->invoice_no,
+                'description' => 'Sale to ' . ($sale->customer->name ?? 'Walk-in'),
+                'incoming' => $sale->grand_total,
+                'outgoing' => 0,
+            ];
+        });
+
+        $expenses = $expensesQuery->get()->map(function($expense) {
+            return (object)[
+                'date' => $expense->expense_date,
+                'type' => 'Expense',
+                'reference' => 'EXP-'.str_pad($expense->id, 5, '0', STR_PAD_LEFT),
+                'description' => $expense->category->name ?? 'Expense',
+                'incoming' => 0,
+                'outgoing' => $expense->amount,
+            ];
+        });
+
+        $ledger = $sales->concat($expenses)->sortBy('date')->values();
+        
+        $totalIncoming = $ledger->sum('incoming');
+        $totalOutgoing = $ledger->sum('outgoing');
+        $netTotal = $totalIncoming - $totalOutgoing;
+
+        return $this->render($r, 'reports.ledger', compact('ledger', 'totalIncoming', 'totalOutgoing', 'netTotal', 'from', 'to'), 'Daily Ledger Report');
+    }
+
     public function profit(Request $r)
     {
         $this->authorize('view-reports');

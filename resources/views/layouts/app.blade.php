@@ -63,6 +63,7 @@ $nav = [
         ['Supplier Due Report', 'reports.supplier-due', [], 'reports.supplier_due'],
         ['Cheque Report', 'reports.cheques', [], 'reports.cheques'],
         ['Daily Closing Report', 'reports.daily-closing', [], 'reports.daily_closing'],
+        ['Daily Ledger Report', 'reports.ledger', [], 'reports.ledger'],
         ['Dead Stock', 'reports.dead', [], 'reports.dead_stock'],
     ], 'tabler-chart-bar'],
     ['Settings', [
