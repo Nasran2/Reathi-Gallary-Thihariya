@@ -257,6 +257,27 @@ class ReportController extends Controller
             ];
         });
 
+        $cardFeeTotal = 0;
+        foreach ($salesList as $sale) {
+            foreach ($sale->payments as $payment) {
+                if ($payment->method && $payment->method->bank_charge_percentage > 0) {
+                    $cardFeeTotal += $payment->amount * ($payment->method->bank_charge_percentage / 100);
+                }
+            }
+        }
+
+        if ($cardFeeTotal > 0) {
+            $expenses->push((object)[
+                'date' => $to ? $to->endOfDay() : now(),
+                'type' => 'Expense',
+                'reference' => 'FEE-'.now()->format('Ymd'),
+                'description' => 'Payment Gateway / Card Fees',
+                'incoming' => 0,
+                'outgoing' => $cardFeeTotal,
+                'is_bank' => true,
+            ]);
+        }
+
         $ledger = $sales->concat($expenses)->sortBy('date')->values();
         
         $totalIncoming = $ledger->sum('incoming');
