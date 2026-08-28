@@ -92,9 +92,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/cheques', [ChequeController::class, 'dashboard'])->name('cheques.dashboard')->middleware('permission:cheques.view');
     Route::get('/cheques/all', [ChequeController::class, 'index'])->name('cheques.index')->middleware('permission:cheques.view');
     Route::get('/cheques/received', fn (Request $r) => app(ChequeController::class)->index($r, 'received'))->name('cheques.received')->middleware('permission:cheques.view');
-    Route::get('/cheques/issued', fn (Request $r) => app(ChequeController::class)->index($r, 'issued'))->name('cheques.issued')->middleware('permission:cheques.view');
-    Route::get('/cheques/endorsed', fn (Request $r) => app(ChequeController::class)->index($r->merge(['type' => 'endorsed'])))->name('cheques.endorsed')->middleware('permission:cheques.view');
-    Route::get('/cheques/returned', fn (Request $r) => app(ChequeController::class)->index($r->merge(['status' => 'returned'])))->name('cheques.returned')->middleware('permission:cheques.view');
+    Route::get('/cheques/issued', fn (Request $r) => app(ChequeController::class)->index($r, 'issued'))->name('cheques.issued')->middleware('permission:cheques.issue');
+    Route::get('/cheques/endorsed', fn (Request $r) => app(ChequeController::class)->index($r->merge(['type' => 'endorsed'])))->name('cheques.endorsed')->middleware('permission:cheques.endorse');
+    Route::get('/cheques/returned', fn (Request $r) => app(ChequeController::class)->index($r->merge(['status' => 'returned'])))->name('cheques.returned')->middleware('permission:cheques.return');
     Route::get('/cheques/history', [ChequeController::class, 'index'])->name('cheques.history')->middleware('permission:cheques.view');
     Route::get('/cheques/{cheque}', [ChequeController::class, 'show'])->name('cheques.show')->middleware('permission:cheques.view');
     Route::post('/cheques/{cheque}/deposit', [ChequeController::class, 'deposit'])->name('cheques.deposit')->middleware('permission:cheques.pass');

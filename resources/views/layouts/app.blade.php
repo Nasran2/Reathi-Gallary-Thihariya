@@ -46,9 +46,9 @@ $nav = [
     ['Cheque Management', [
         ['Dashboard', 'cheques.dashboard', [], 'cheques.view'],
         ['Received Cheques', 'cheques.received', [], 'cheques.view'],
-        ['Issued Cheques', 'cheques.issued', [], 'cheques.view'],
-        ['Endorsed / Transferred', 'cheques.endorsed', [], 'cheques.view'],
-        ['Returned Cheques', 'cheques.returned', [], 'cheques.view'],
+        ['Issued Cheques', 'cheques.issued', [], 'cheques.issue'],
+        ['Endorsed / Transferred', 'cheques.endorsed', [], 'cheques.endorse'],
+        ['Returned Cheques', 'cheques.returned', [], 'cheques.return'],
         ['Cheque History', 'cheques.history', [], 'cheques.view'],
     ], 'tabler-receipt'],
     ['Reports', [
