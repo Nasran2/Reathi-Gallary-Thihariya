@@ -191,7 +191,7 @@ class CustomerController extends Controller
     private function validated(Request $r, ?Customer $customer = null): array
     {
         $id = $customer ? $customer->id : null;
-        return $r->validate([
+        $data = $r->validate([
             'name' => 'required|max:150', 
             'mobile' => 'nullable|max:30|unique:customers,mobile,' . $id, 
             'whatsapp' => 'nullable|max:30', 
@@ -201,5 +201,10 @@ class CustomerController extends Controller
             'opening_balance' => 'nullable|numeric', 
             'notes' => 'nullable'
         ]);
+
+        $data['opening_balance'] = $data['opening_balance'] ?? 0;
+        $data['credit_limit'] = $data['credit_limit'] ?? 0;
+
+        return $data;
     }
 }
