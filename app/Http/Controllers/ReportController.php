@@ -214,7 +214,7 @@ class ReportController extends Controller
         [$from, $to] = $this->dates($r);
 
         $salesQuery = Sale::with(['customer', 'payments.method']);
-        $expensesQuery = Expense::with('category');
+        $expensesQuery = Expense::with(['category', 'paymentMethod']);
 
         if ($from && $to) {
             $salesQuery->whereBetween('sold_at', [$from->startOfDay(), $to->endOfDay()]);
@@ -225,6 +225,14 @@ class ReportController extends Controller
         $salesList = $salesQuery->get();
 
         $sales = $salesList->map(function($sale) {
+            $isBank = false;
+            foreach ($sale->payments as $payment) {
+                if (optional($payment->method)->code === 'bank_transfer') {
+                    $isBank = true;
+                    break;
+                }
+            }
+            
             return (object)[
                 'date' => $sale->sold_at,
                 'type' => 'Sale',
@@ -232,10 +240,12 @@ class ReportController extends Controller
                 'description' => 'Sale to ' . ($sale->customer->name ?? 'Walk-in'),
                 'incoming' => $sale->grand_total,
                 'outgoing' => 0,
+                'is_bank' => $isBank,
             ];
         });
 
         $expenses = $expensesQuery->get()->map(function($expense) {
+            $isBank = optional($expense->paymentMethod)->code === 'bank_transfer';
             return (object)[
                 'date' => $expense->expense_date,
                 'type' => 'Expense',
@@ -243,6 +253,7 @@ class ReportController extends Controller
                 'description' => $expense->category->name ?? 'Expense',
                 'incoming' => 0,
                 'outgoing' => $expense->amount,
+                'is_bank' => $isBank,
             ];
         });
 
