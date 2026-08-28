@@ -213,7 +213,7 @@ class ReportController extends Controller
         $this->authorize('reports.ledger');
         [$from, $to] = $this->dates($r);
 
-        $salesQuery = Sale::with('customer');
+        $salesQuery = Sale::with(['customer', 'payments.method']);
         $expensesQuery = Expense::with('category');
 
         if ($from && $to) {
@@ -221,8 +221,10 @@ class ReportController extends Controller
             // Assuming expense_date is date or datetime
             $expensesQuery->whereBetween('expense_date', [$from->startOfDay(), $to->endOfDay()]);
         }
+        
+        $salesList = $salesQuery->get();
 
-        $sales = $salesQuery->get()->map(function($sale) {
+        $sales = $salesList->map(function($sale) {
             return (object)[
                 'date' => $sale->sold_at,
                 'type' => 'Sale',
@@ -249,8 +251,19 @@ class ReportController extends Controller
         $totalIncoming = $ledger->sum('incoming');
         $totalOutgoing = $ledger->sum('outgoing');
         $netTotal = $totalIncoming - $totalOutgoing;
+        
+        $totalDue = $salesList->sum('due_total');
+        $bankTotal = 0;
+        
+        foreach ($salesList as $sale) {
+            foreach ($sale->payments as $payment) {
+                if (in_array(optional($payment->method)->code, ['bank_transfer', 'card'])) {
+                    $bankTotal += $payment->amount;
+                }
+            }
+        }
 
-        return $this->render($r, 'reports.ledger', compact('ledger', 'totalIncoming', 'totalOutgoing', 'netTotal', 'from', 'to'), 'Daily Ledger Report');
+        return $this->render($r, 'reports.ledger', compact('ledger', 'totalIncoming', 'totalOutgoing', 'netTotal', 'totalDue', 'bankTotal', 'from', 'to'), 'Daily Ledger Report');
     }
 
     public function profit(Request $r)

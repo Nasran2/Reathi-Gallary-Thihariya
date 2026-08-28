@@ -1,4 +1,4 @@
-<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+<div class="grid grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
     <div class="bg-emerald-50 border border-emerald-100 p-5 rounded-xl">
         <h4 class="text-sm font-semibold text-emerald-800 uppercase tracking-wider mb-2">Total Incoming (Sales)</h4>
         <div class="text-2xl font-bold text-emerald-900">Rs. {{ number_format($totalIncoming, 2) }}</div>
@@ -6,6 +6,14 @@
     <div class="bg-rose-50 border border-rose-100 p-5 rounded-xl">
         <h4 class="text-sm font-semibold text-rose-800 uppercase tracking-wider mb-2">Total Outgoing (Expenses)</h4>
         <div class="text-2xl font-bold text-rose-900">Rs. {{ number_format($totalOutgoing, 2) }}</div>
+    </div>
+    <div class="bg-blue-50 border border-blue-100 p-5 rounded-xl">
+        <h4 class="text-sm font-semibold text-blue-800 uppercase tracking-wider mb-2">Bank Collection</h4>
+        <div class="text-2xl font-bold text-blue-900">Rs. {{ number_format($bankTotal, 2) }}</div>
+    </div>
+    <div class="bg-amber-50 border border-amber-100 p-5 rounded-xl">
+        <h4 class="text-sm font-semibold text-amber-800 uppercase tracking-wider mb-2">Total Due</h4>
+        <div class="text-2xl font-bold text-amber-900">Rs. {{ number_format($totalDue, 2) }}</div>
     </div>
     <div class="bg-slate-800 border border-slate-900 p-5 rounded-xl text-white">
         <h4 class="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-2">Net Balance (In - Out)</h4>
