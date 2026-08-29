@@ -25,6 +25,7 @@
                 <th>Main stock</th>
                 <th>Remnant</th>
                 <th>Avg cost</th>
+                <th class="w-10 text-center"></th>
                 <th class="text-right">Actions</th>
             </tr>
         </thead>
@@ -52,6 +53,15 @@
                             <span class="text-slate-300">Restricted</span>
                         @endcan
                     </td>
+                    <td x-data="favoriteToggle({{ $p->id }}, {{ $p->is_favorite ? 'true' : 'false' }})" class="text-center">
+                        @can('products.edit')
+                        <button type="button" @click="toggle()" class="text-xl transition hover:scale-110" :class="isFavorite ? 'text-amber-400' : 'text-slate-300 hover:text-amber-300'" :disabled="loading">
+                            <i class="ti" :class="isFavorite ? 'ti-star-filled' : 'ti-star'"></i>
+                        </button>
+                        @else
+                        <i class="ti text-xl" :class="isFavorite ? 'ti-star-filled text-amber-400' : 'ti-star text-slate-300'"></i>
+                        @endcan
+                    </td>
                     <td>
                         <div class="flex items-center justify-end gap-2 whitespace-nowrap">
                             <a class="btn-soft !px-3 !py-1.5" href="{{ route('products.show', $p) }}">View</a>
@@ -70,11 +80,40 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="7" class="py-12 text-center text-slate-400">No products yet. Add your first fabric or item.</td>
+                    <td colspan="8" class="py-12 text-center text-slate-400">No products yet. Add your first fabric or item.</td>
                 </tr>
             @endforelse
         </tbody>
     </table>
 </div>
 <div class="mt-5">{{ $products->links() }}</div>
+
+@push('scripts')
+<script>
+document.addEventListener('alpine:init', () => {
+    Alpine.data('favoriteToggle', (productId, initialFavorite) => ({
+        isFavorite: initialFavorite,
+        loading: false,
+        toggle() {
+            this.loading = true;
+            fetch(`/products/${productId}/toggle-favorite`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                    'Accept': 'application/json'
+                }
+            }).then(res => res.json()).then(data => {
+                if (data.success) {
+                    this.isFavorite = data.is_favorite;
+                }
+            }).catch(e => {
+                console.error(e);
+            }).finally(() => {
+                this.loading = false;
+            });
+        }
+    }));
+});
+</script>
+@endpush
 @endsection

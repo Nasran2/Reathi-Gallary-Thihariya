@@ -215,4 +215,12 @@ class ProductController extends Controller
             ]);
         }
     }
+
+    public function toggleFavorite(Product $product)
+    {
+        $this->authorize('products.edit');
+        $product->update(['is_favorite' => !$product->is_favorite]);
+        
+        return response()->json(['success' => true, 'is_favorite' => $product->is_favorite]);
+    }
 }
