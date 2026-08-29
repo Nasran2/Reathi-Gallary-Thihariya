@@ -239,9 +239,9 @@ class SaleService
 
             // Revert Customer Ledgers
             if ($sale->customer_id) {
-                \App\Models\CustomerLedger::where('sale_id', $sale->id)->delete();
+                \App\Models\CustomerLedger::where('reference_type', 'App\Models\Sale')->where('reference_id', $sale->id)->delete();
                 foreach ($sale->payments as $payment) {
-                    \App\Models\CustomerLedger::where('payment_id', $payment->id)->delete();
+                    \App\Models\CustomerLedger::where('reference_type', 'App\Models\SalePayment')->where('reference_id', $payment->id)->delete();
                 }
             }
 
