@@ -11,9 +11,9 @@
         <h4 class="text-sm font-semibold text-blue-800 uppercase tracking-wider mb-2">Bank Collection</h4>
         <div class="text-2xl font-bold text-blue-900">Rs. {{ number_format($bankTotal, 2) }}</div>
     </div>
-    <div class="bg-indigo-50 border border-indigo-100 p-5 rounded-xl">
-        <h4 class="text-sm font-semibold text-indigo-800 uppercase tracking-wider mb-2">Bank Balance</h4>
-        <div class="text-2xl font-bold text-indigo-900">Rs. {{ number_format($bankTotal - $cardFeeTotal, 2) }}</div>
+    <div class="bg-red-50 border border-red-100 p-5 rounded-xl">
+        <h4 class="text-sm font-semibold text-red-800 uppercase tracking-wider mb-2">Total Card Fee</h4>
+        <div class="text-2xl font-bold text-red-900">Rs. {{ number_format($cardFeeTotal, 2) }}</div>
     </div>
     <div class="bg-amber-50 border border-amber-100 p-5 rounded-xl">
         <h4 class="text-sm font-semibold text-amber-800 uppercase tracking-wider mb-2">Total Due</h4>
