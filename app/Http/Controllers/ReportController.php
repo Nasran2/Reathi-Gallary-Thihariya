@@ -227,7 +227,7 @@ class ReportController extends Controller
         $sales = $salesList->map(function($sale) {
             $isBank = false;
             foreach ($sale->payments as $payment) {
-                if (optional($payment->method)->code === 'bank_transfer') {
+                if (in_array(optional($payment->method)->code, ['bank_transfer', 'card'])) {
                     $isBank = true;
                     break;
                 }
@@ -245,7 +245,7 @@ class ReportController extends Controller
         });
 
         $expenses = $expensesQuery->get()->map(function($expense) {
-            $isBank = optional($expense->paymentMethod)->code === 'bank_transfer';
+            $isBank = in_array(optional($expense->paymentMethod)->code, ['bank_transfer', 'card']);
             return (object)[
                 'date' => $expense->expense_date,
                 'type' => 'Expense',
