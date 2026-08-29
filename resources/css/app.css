@@ -34,10 +34,6 @@
 }
 
 /* POS: compact catalogue on phones, side-by-side workspace on tablets. */
-@media (min-width: 1024px) {
-    .pos-shell > .grid { grid-template-columns: minmax(0, 1fr) 390px; }
-}
-
 @media (max-width: 1023px) {
     .pos-shell > .grid { display: block; min-height: calc(100dvh - 112px); }
     .pos-shell > .grid > section { padding-bottom: 92px; }
