@@ -248,13 +248,19 @@ class SaleService
             // Revert Bank Fee Expenses
             \App\Models\Expense::where('reference', $sale->invoice_no)->delete();
 
-            // Revert Cheque Allocations
-            $allocations = \App\Models\ChequeAllocation::where('sale_id', $sale->id)->get();
+            // Revert Cheque Allocations and Cheques created during this sale
+            $allocations = \App\Models\CustomerPaymentAllocation::where('sale_id', $sale->id)->get();
             foreach ($allocations as $allocation) {
-                $cheque = $allocation->cheque;
+                $customerPayment = $allocation->payment;
                 $allocation->delete();
-                // If cheque has no other allocations, maybe delete or just update status
-                $cheque->updateStatus();
+                
+                if ($customerPayment && $customerPayment->allocations()->count() === 0) {
+                    $cheque = $customerPayment->cheque;
+                    $customerPayment->delete();
+                    if ($cheque) {
+                        $cheque->delete();
+                    }
+                }
             }
 
             // Delete Records
