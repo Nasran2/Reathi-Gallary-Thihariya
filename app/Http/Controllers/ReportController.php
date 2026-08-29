@@ -73,7 +73,7 @@ class ReportController extends Controller
         $this->authorize('view-reports');
         [$from, $to] = $this->dates($r);
 
-        $query = Sale::with('customer');
+        $query = Sale::with(['customer', 'payments.method']);
         if ($from && $to) {
             $query->whereBetween('sold_at', [$from->startOfDay(), $to->endOfDay()]);
         }

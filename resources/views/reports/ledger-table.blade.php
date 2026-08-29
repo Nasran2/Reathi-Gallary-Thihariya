@@ -35,34 +35,34 @@
     </thead>
     <tbody>
         @forelse($ledger as $row)
-            <tr class="border-b border-slate-100 hover:bg-slate-50 transition-colors {{ $row->is_bank ? 'bg-blue-50/50' : '' }}">
-                <td class="py-2.5">{{ $row->date->format('Y-m-d h:i A') }}</td>
-                <td class="py-2.5">
-                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium {{ $row->type === 'Sale' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800' }}">
-                        {{ $row->type }}
-                    </span>
-                    @if($row->is_bank)
-                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 ml-1">
-                            Bank
-                        </span>
-                    @endif
-                </td>
-                <td class="py-2.5 font-medium">{{ $row->reference }}</td>
-                <td class="py-2.5 text-slate-600">{{ $row->description }}</td>
-                <td class="py-2.5 text-right font-medium {{ $row->incoming > 0 ? 'text-emerald-600' : 'text-slate-400' }}">
-                    {{ $row->incoming > 0 ? number_format($row->incoming, 2) : '-' }}
-                </td>
-                <td class="py-2.5 text-right font-medium {{ $row->outgoing > 0 ? 'text-rose-600' : 'text-slate-400' }}">
-                    {{ $row->outgoing > 0 ? number_format($row->outgoing, 2) : '-' }}
-                </td>
-            </tr>
+        <tr class="border-b border-slate-100 hover:bg-slate-50 transition-colors {{ $row->is_bank ? 'bg-blue-50/50' : '' }}">
+            <td class="py-2.5">{{ $row->date->format('Y-m-d h:i A') }}</td>
+            <td class="py-2.5">
+                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium {{ $row->type === 'Sale' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800' }}">
+                    {{ $row->type }}
+                </span>
+                @if($row->is_bank)
+                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 ml-1">
+                    Bank
+                </span>
+                @endif
+            </td>
+            <td class="py-2.5 font-medium">{{ $row->reference }}</td>
+            <td class="py-2.5 text-slate-600">{{ $row->description }}</td>
+            <td class="py-2.5 text-right font-medium {{ $row->incoming > 0 ? 'text-emerald-600' : 'text-slate-400' }}">
+                {{ $row->incoming > 0 ? number_format($row->incoming, 2) : '-' }}
+            </td>
+            <td class="py-2.5 text-right font-medium {{ $row->outgoing > 0 ? 'text-rose-600' : 'text-slate-400' }}">
+                {{ $row->outgoing > 0 ? number_format($row->outgoing, 2) : '-' }}
+            </td>
+        </tr>
         @empty
-            <tr>
-                <td colspan="6" class="py-8 text-center text-slate-500">
-                    <i class="ti ti-receipt text-3xl mb-2 opacity-50 block"></i>
-                    No ledger transactions found for the selected period.
-                </td>
-            </tr>
+        <tr>
+            <td colspan="6" class="py-8 text-center text-slate-500">
+                <i class="ti ti-receipt text-3xl mb-2 opacity-50 block"></i>
+                No ledger transactions found for the selected period.
+            </td>
+        </tr>
         @endforelse
     </tbody>
     <tfoot>
