@@ -1,6 +1,6 @@
 @extends('layouts.app') @section('title',$product->exists?'Edit product':'New product') @section('content')
 @php 
-$existing = old('units', $product->exists ? $product->productUnits->map(fn($u)=>['unit_id'=>(string)$u->unit_id,'base_quantity'=>(float)$u->base_quantity,'unit_quantity'=>(float)$u->unit_quantity,'can_purchase'=>(bool)$u->can_purchase,'can_sell'=>(bool)$u->can_sell])->values()->all() : []);
+$existing = old('units', $product->exists ? $product->productUnits->map(fn($u)=>['unit_id'=>(string)$u->unit_id,'base_quantity'=>(float)$u->base_quantity,'unit_quantity'=>(float)$u->unit_quantity,'main_price'=>$u->main_price,'remnant_price'=>$u->remnant_price,'can_purchase'=>(bool)$u->can_purchase,'can_sell'=>(bool)$u->can_sell])->values()->all() : []);
 $baseUnitId = old('base_unit_id', $product->base_unit_id);
 $existingExtras = collect($existing)
     ->reject(fn ($unit) => (string) $unit['unit_id'] === (string) $baseUnitId)
@@ -184,7 +184,16 @@ $existingExtras = collect($existing)
                                 @endforeach
                             </select>
                         </td>
-                        <td class="whitespace-nowrap text-sm"><div>Main: <strong>Rs. <span x-text="convertedPrice(row, mainPrice).toFixed(3)"></span></strong></div><div class="text-slate-400">Remnant: Rs. <span x-text="convertedPrice(row, remnantPrice).toFixed(3)"></span></div></td>
+                        <td class="text-sm">
+                            <div class="mb-1 flex items-center gap-2">
+                                <span class="w-14 text-slate-500">Main</span>
+                                <input type="number" min="0" step="0.0001" class="w-28 !py-1 text-xs" :name="fieldName(i, 'main_price')" x-model="row.main_price" :placeholder="'Auto: ' + convertedPrice(row, mainPrice).toFixed(2)">
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="w-14 text-slate-500">Remnant</span>
+                                <input type="number" min="0" step="0.0001" class="w-28 !py-1 text-xs" :name="fieldName(i, 'remnant_price')" x-model="row.remnant_price" :placeholder="'Auto: ' + convertedPrice(row, remnantPrice).toFixed(2)">
+                            </div>
+                        </td>
                         <td><label class="flex items-center gap-2 whitespace-nowrap normal-case"><input type="checkbox" x-model="row.group" @change="normalizeGroup(row)"> Group conversion</label></td>
                         <td><button type="button" class="text-red-500 hover:text-red-700 font-medium px-3" @click="removeConversion(i)">Remove</button></td>
                     </tr>

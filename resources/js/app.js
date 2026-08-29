@@ -125,6 +125,8 @@ Alpine.data('productForm', () => {
                 unit_id: '',
                 base_quantity: 1,
                 unit_quantity: 1,
+                main_price: null,
+                remnant_price: null,
                 can_purchase: true,
                 can_sell: true,
                 group: false,

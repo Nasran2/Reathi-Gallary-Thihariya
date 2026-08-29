@@ -14,7 +14,7 @@ class ProductUnit extends Pivot
 
     protected function casts(): array
     {
-        return ['conversion_rate' => 'decimal:8', 'base_quantity' => 'decimal:8', 'unit_quantity' => 'decimal:8', 'can_purchase' => 'boolean', 'can_sell' => 'boolean'];
+        return ['conversion_rate' => 'decimal:8', 'base_quantity' => 'decimal:8', 'unit_quantity' => 'decimal:8', 'main_price' => 'decimal:4', 'remnant_price' => 'decimal:4', 'can_purchase' => 'boolean', 'can_sell' => 'boolean'];
     }
 
     public function product()
