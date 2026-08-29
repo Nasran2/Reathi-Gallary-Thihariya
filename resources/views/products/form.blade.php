@@ -185,14 +185,7 @@ $existingExtras = collect($existing)
                             </select>
                         </td>
                         <td class="text-sm">
-                            <div class="mb-1 flex items-center gap-2">
-                                <span class="w-14 text-slate-500">Main</span>
-                                <input type="number" min="0" step="0.0001" class="w-28 !py-1 text-xs" :name="fieldName(i, 'main_price')" x-model="row.main_price" :placeholder="'Auto: ' + convertedPrice(row, mainPrice).toFixed(2)">
-                            </div>
-                            <div class="flex items-center gap-2">
-                                <span class="w-14 text-slate-500">Remnant</span>
-                                <input type="number" min="0" step="0.0001" class="w-28 !py-1 text-xs" :name="fieldName(i, 'remnant_price')" x-model="row.remnant_price" :placeholder="'Auto: ' + convertedPrice(row, remnantPrice).toFixed(2)">
-                            </div>
+                            <input type="number" min="0" step="0.0001" class="w-32 !py-1 text-sm" :name="fieldName(i, 'main_price')" x-model="row.main_price" :placeholder="'Auto: ' + convertedPrice(row, mainPrice).toFixed(2)">
                         </td>
                         <td><label class="flex items-center gap-2 whitespace-nowrap normal-case"><input type="checkbox" x-model="row.group" @change="normalizeGroup(row)"> Group conversion</label></td>
                         <td><button type="button" class="text-red-500 hover:text-red-700 font-medium px-3" @click="removeConversion(i)">Remove</button></td>
