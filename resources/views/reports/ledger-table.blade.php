@@ -1,4 +1,4 @@
-<div class="grid grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+<div class="grid grid-cols-2 lg:grid-cols-6 gap-6 mb-8">
     <div class="bg-emerald-50 border border-emerald-100 p-5 rounded-xl">
         <h4 class="text-sm font-semibold text-emerald-800 uppercase tracking-wider mb-2">Total Incoming (Sales)</h4>
         <div class="text-2xl font-bold text-emerald-900">Rs. {{ number_format($totalIncoming, 2) }}</div>
@@ -10,6 +10,10 @@
     <div class="bg-blue-50 border border-blue-100 p-5 rounded-xl">
         <h4 class="text-sm font-semibold text-blue-800 uppercase tracking-wider mb-2">Bank Collection</h4>
         <div class="text-2xl font-bold text-blue-900">Rs. {{ number_format($bankTotal, 2) }}</div>
+    </div>
+    <div class="bg-indigo-50 border border-indigo-100 p-5 rounded-xl">
+        <h4 class="text-sm font-semibold text-indigo-800 uppercase tracking-wider mb-2">Bank Balance</h4>
+        <div class="text-2xl font-bold text-indigo-900">Rs. {{ number_format($bankTotal - $cardFeeTotal, 2) }}</div>
     </div>
     <div class="bg-amber-50 border border-amber-100 p-5 rounded-xl">
         <h4 class="text-sm font-semibold text-amber-800 uppercase tracking-wider mb-2">Total Due</h4>

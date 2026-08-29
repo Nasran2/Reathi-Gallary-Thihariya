@@ -295,7 +295,7 @@ class ReportController extends Controller
             }
         }
 
-        return $this->render($r, 'reports.ledger', compact('ledger', 'totalIncoming', 'totalOutgoing', 'netTotal', 'totalDue', 'bankTotal', 'from', 'to'), 'Daily Ledger Report');
+        return $this->render($r, 'reports.ledger', compact('ledger', 'totalIncoming', 'totalOutgoing', 'netTotal', 'totalDue', 'bankTotal', 'cardFeeTotal', 'from', 'to'), 'Daily Ledger Report');
     }
 
     public function profit(Request $r)
