@@ -417,7 +417,7 @@ function saleSuccessModal() {
 @endif
 
 
-@push('scripts')<script>function pos(catalog,type,methods){return{catalog,type,methods,search:'',category:'',cart:[],customer:'',token:'{{ \Illuminate\Support\Str::uuid() }}',submitting:false,showPaymentModal:false,paymentRows:[],sellNote:'',staffNote:'',paymentError:'',editModal:false,editingLineIndex:null,
+@push('scripts')<script>function pos(catalog,type,methods){return{catalog,type,methods,search:'',category:'',cart:@json(session('edit_cart', [])),customer:'{{ session('edit_customer', '') }}',token:'{{ \Illuminate\Support\Str::uuid() }}',submitting:false,showPaymentModal:false,paymentRows:[],sellNote:'',staffNote:'',paymentError:'',editModal:false,editingLineIndex:null,
 addCustomerModal:false,addCustomerError:'',savingCustomer:false,newCust:{name:'',mobile:'',email:'',opening_balance:''},manageFavoritesModal:false,favSearch:'',favoriteList:[],savingFavorites:false,globalDiscountType:'fixed',globalDiscountValue:0,draggedIdx:null,
 openEditModal(i){this.editingLineIndex=i;this.editModal=true;},closeEditModal(){this.editModal=false;this.editingLineIndex=null;},showError(msg){this.paymentError=msg;setTimeout(()=>this.paymentError='',4000);},
 saveNewCustomer(){

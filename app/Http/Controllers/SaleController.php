@@ -59,4 +59,67 @@ class SaleController extends Controller
         $sms->sendInvoice($sale, auth()->id());
         return response()->json(['success' => true]);
     }
+
+    public function destroy(Sale $sale, \App\Services\SaleService $saleService)
+    {
+        try {
+            $saleService->deleteSale($sale);
+            return redirect()->route('sales.index')->with('success', 'Sale deleted successfully. Stock has been returned to inventory.');
+        } catch (\Exception $e) {
+            return redirect()->route('sales.index')->with('error', 'Failed to delete sale: ' . $e->getMessage());
+        }
+    }
+
+    public function edit(Sale $sale, \App\Services\SaleService $saleService)
+    {
+        try {
+            // Determine if it was a remnant sale based on invoice number or items
+            $isRemnant = str_starts_with($sale->invoice_no, 'RPOS');
+            
+            // Build the cart state to restore
+            $cart = [];
+            foreach ($sale->items as $item) {
+                $product = $item->product;
+                if (!$product) continue;
+                
+                $cartItem = [
+                    'lineKey' => 'edit_' . uniqid(),
+                    'product_id' => $item->product_id,
+                    'remnant_id' => $item->remnant_id,
+                    'name' => $product->name,
+                    'sku' => $product->sku,
+                    'unit_id' => $item->unit_id,
+                    'quantity' => (float)$item->quantity,
+                    'price' => (float)$item->unit_price,
+                    'discount_value' => (float)$item->discount_amount,
+                    'discount_type' => 'fixed',
+                ];
+                
+                if ($item->remnant_id) {
+                    $remnant = \App\Models\Remnant::find($item->remnant_id);
+                    $cartItem['remnant_no'] = $remnant ? $remnant->remnant_no : null;
+                    $cartItem['maxDisplay'] = $remnant ? (float)$remnant->remaining_quantity + (float)$item->quantity : (float)$item->quantity;
+                    $cartItem['units'] = [['unit_id' => $item->unit_id, 'symbol' => $item->unit->symbol ?? '']];
+                } else {
+                    $cartItem['units'] = $product->productUnits->map(fn($u) => ['unit_id' => $u->unit_id, 'symbol' => $u->unit->symbol])->toArray();
+                    $cartItem['maxDisplay'] = 999999;
+                }
+                
+                $cart[] = $cartItem;
+            }
+
+            // Delete the old sale first so stock is returned
+            $saleService->deleteSale($sale);
+            
+            // Redirect to POS with the cart preloaded in session
+            session()->flash('edit_cart', $cart);
+            session()->flash('edit_customer', $sale->customer_id);
+            
+            return redirect()->route($isRemnant ? 'pos.remnant' : 'pos.main')
+                ->with('success', 'Sale voided. You can now edit the items and checkout again.');
+                
+        } catch (\Exception $e) {
+            return redirect()->route('sales.index')->with('error', 'Failed to edit sale: ' . $e->getMessage());
+        }
+    }
 }

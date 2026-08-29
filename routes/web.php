@@ -53,7 +53,7 @@ Route::middleware('auth')->group(function () {
     Route::resource('purchases', PurchaseController::class)->only(['index', 'show'])->middleware('permission:purchases.view');
     Route::resource('purchases', PurchaseController::class)->only(['destroy'])->middleware('permission:purchases.cancel');
     Route::resource('unit-presets', \App\Http\Controllers\UnitPresetController::class)->except(['show'])->middleware('permission:unit_presets.manage');
-    Route::resource('sales', SaleController::class)->only(['index', 'show'])->middleware('permission:sales.view');
+    Route::resource('sales', SaleController::class)->only(['index', 'show', 'edit', 'destroy'])->middleware('permission:sales.view');
     Route::get('/sales/{sale}/print', [SaleController::class, 'print'])->name('sales.print')->middleware('permission:sales.view');
     Route::get('/sales/{sale}/pdf', [SaleController::class, 'pdf'])->name('sales.pdf')->middleware('permission:sales.view');
     Route::post('/sales/{sale}/update-customer', [SaleController::class, 'updateCustomer'])->name('sales.update-customer')->middleware('permission:sales.view');

@@ -192,4 +192,76 @@ class SaleService
             '30_days' => now()->addDays(30),'90_days' => now()->addDays(90),'1_year' => now()->addYear(),default => null
         };
     }
+
+    public function deleteSale(Sale $sale, ?int $userId = null): void
+    {
+        DB::transaction(function () use ($sale, $userId) {
+            $userId = $userId ?? auth()->id();
+            
+            // Revert Inventory
+            foreach ($sale->items as $item) {
+                if ($item->product) {
+                    $inventoryType = $item->remnant_id ? 'remnant' : 'main';
+                    $this->inventory->move(
+                        $item->product, 
+                        $sale->store_id, 
+                        $inventoryType, 
+                        'sale_return', 
+                        $item->base_quantity, 
+                        0, 
+                        $item->cost_at_sale, 
+                        $item, 
+                        $userId, 
+                        'Reverted sale ' . $sale->invoice_no
+                    );
+                    
+                    if ($inventoryType === 'remnant' && $item->remnant_id) {
+                        $remnant = \App\Models\Remnant::find($item->remnant_id);
+                        if ($remnant) {
+                            $remaining = Decimal::of($remnant->remaining_base_quantity)
+                                ->plus($item->base_quantity)
+                                ->toScale(6, RoundingMode::HalfUp);
+                            $remainingDisplay = Decimal::of($remaining)
+                                ->dividedBy(Decimal::of($remnant->conversion_rate), 6, RoundingMode::HalfUp);
+                            $status = $remaining->isEqualTo(Decimal::of($remnant->original_base_quantity)) 
+                                ? 'available' 
+                                : 'partially_sold';
+                                
+                            $remnant->update([
+                                'remaining_base_quantity' => $remaining,
+                                'remaining_quantity' => $remainingDisplay,
+                                'status' => $status
+                            ]);
+                        }
+                    }
+                }
+            }
+
+            // Revert Customer Ledgers
+            if ($sale->customer_id) {
+                \App\Models\CustomerLedger::where('sale_id', $sale->id)->delete();
+                foreach ($sale->payments as $payment) {
+                    \App\Models\CustomerLedger::where('payment_id', $payment->id)->delete();
+                }
+            }
+
+            // Revert Bank Fee Expenses
+            \App\Models\Expense::where('reference', $sale->invoice_no)->delete();
+
+            // Revert Cheque Allocations
+            $allocations = \App\Models\ChequeAllocation::where('sale_id', $sale->id)->get();
+            foreach ($allocations as $allocation) {
+                $cheque = $allocation->cheque;
+                $allocation->delete();
+                // If cheque has no other allocations, maybe delete or just update status
+                $cheque->updateStatus();
+            }
+
+            // Delete Records
+            $sale->items()->delete();
+            $sale->payments()->delete();
+            $sale->publicToken()->delete();
+            $sale->delete();
+        }, 3);
+    }
 }
