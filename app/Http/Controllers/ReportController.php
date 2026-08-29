@@ -288,16 +288,23 @@ class ReportController extends Controller
         
         $totalDue = $salesList->sum('due_total');
         $cardTotal = 0;
+        $bankTotal = 0;
+        $cashTotal = 0;
         
         foreach ($salesList as $sale) {
             foreach ($sale->payments as $payment) {
-                if (optional($payment->method)->code === 'card') {
+                $code = optional($payment->method)->code;
+                if ($code === 'card') {
                     $cardTotal += $payment->amount;
+                } elseif ($code === 'bank_transfer') {
+                    $bankTotal += $payment->amount;
+                } elseif ($code === 'cash') {
+                    $cashTotal += $payment->amount;
                 }
             }
         }
 
-        return $this->render($r, 'reports.ledger', compact('ledger', 'totalIncoming', 'totalOutgoing', 'netTotal', 'totalDue', 'cardTotal', 'cardFeeTotal', 'from', 'to'), 'Daily Ledger Report');
+        return $this->render($r, 'reports.ledger', compact('ledger', 'totalIncoming', 'totalOutgoing', 'netTotal', 'totalDue', 'cardTotal', 'bankTotal', 'cashTotal', 'cardFeeTotal', 'from', 'to'), 'Daily Ledger Report');
     }
 
     public function profit(Request $r)

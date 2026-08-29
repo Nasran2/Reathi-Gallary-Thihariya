@@ -1,4 +1,4 @@
-<div class="grid grid-cols-2 lg:grid-cols-6 gap-6 mb-8">
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
     <div class="bg-emerald-50 border border-emerald-100 p-5 rounded-xl">
         <h4 class="text-sm font-semibold text-emerald-800 uppercase tracking-wider mb-2">Total Incoming (Sales)</h4>
         <div class="text-2xl font-bold text-emerald-900">Rs. {{ number_format($totalIncoming, 2) }}</div>
@@ -10,6 +10,14 @@
     <div class="bg-blue-50 border border-blue-100 p-5 rounded-xl">
         <h4 class="text-sm font-semibold text-blue-800 uppercase tracking-wider mb-2">Card Collection</h4>
         <div class="text-2xl font-bold text-blue-900">Rs. {{ number_format($cardTotal, 2) }}</div>
+    </div>
+    <div class="bg-purple-50 border border-purple-100 p-5 rounded-xl">
+        <h4 class="text-sm font-semibold text-purple-800 uppercase tracking-wider mb-2">Bank Collection</h4>
+        <div class="text-2xl font-bold text-purple-900">Rs. {{ number_format($bankTotal ?? 0, 2) }}</div>
+    </div>
+    <div class="bg-orange-50 border border-orange-100 p-5 rounded-xl">
+        <h4 class="text-sm font-semibold text-orange-800 uppercase tracking-wider mb-2">Cash Collection</h4>
+        <div class="text-2xl font-bold text-orange-900">Rs. {{ number_format($cashTotal ?? 0, 2) }}</div>
     </div>
     <div class="bg-red-50 border border-red-100 p-5 rounded-xl">
         <h4 class="text-sm font-semibold text-red-800 uppercase tracking-wider mb-2">Total Card Fee</h4>
