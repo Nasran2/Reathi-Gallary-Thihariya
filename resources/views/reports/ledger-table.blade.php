@@ -8,8 +8,8 @@
         <div class="text-2xl font-bold text-rose-900">Rs. {{ number_format($totalOutgoing, 2) }}</div>
     </div>
     <div class="bg-blue-50 border border-blue-100 p-5 rounded-xl">
-        <h4 class="text-sm font-semibold text-blue-800 uppercase tracking-wider mb-2">Bank Collection</h4>
-        <div class="text-2xl font-bold text-blue-900">Rs. {{ number_format($bankTotal, 2) }}</div>
+        <h4 class="text-sm font-semibold text-blue-800 uppercase tracking-wider mb-2">Card Collection</h4>
+        <div class="text-2xl font-bold text-blue-900">Rs. {{ number_format($cardTotal, 2) }}</div>
     </div>
     <div class="bg-red-50 border border-red-100 p-5 rounded-xl">
         <h4 class="text-sm font-semibold text-red-800 uppercase tracking-wider mb-2">Total Card Fee</h4>
@@ -39,17 +39,25 @@
     </thead>
     <tbody>
         @forelse($ledger as $row)
-        <tr class="border-b border-slate-100 hover:bg-slate-50 transition-colors {{ $row->is_bank ? 'bg-blue-50/50' : '' }}">
+        <tr class="border-b border-slate-100 hover:bg-slate-50 transition-colors {{ collect($row->methods)->contains('code', 'card') ? 'bg-blue-50/50' : '' }}">
             <td class="py-2.5">{{ $row->date->format('Y-m-d h:i A') }}</td>
-            <td class="py-2.5">
+            <td class="py-2.5 flex flex-wrap gap-1 items-center">
                 <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium {{ $row->type === 'Sale' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800' }}">
                     {{ $row->type }}
                 </span>
-                @if($row->is_bank)
-                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 ml-1">
-                    Bank
-                </span>
-                @endif
+                @foreach($row->methods as $m)
+                    @php
+                        $colorClass = match(strtolower($m->code)) {
+                            'card' => 'bg-blue-100 text-blue-800',
+                            'bank_transfer' => 'bg-purple-100 text-purple-800',
+                            'cheque' => 'bg-orange-100 text-orange-800',
+                            default => 'bg-slate-200 text-slate-800'
+                        };
+                    @endphp
+                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium {{ $colorClass }}">
+                        {{ $m->name }}
+                    </span>
+                @endforeach
             </td>
             <td class="py-2.5 font-medium">{{ $row->reference }}</td>
             <td class="py-2.5 text-slate-600">{{ $row->description }}</td>

@@ -225,13 +225,12 @@ class ReportController extends Controller
         $salesList = $salesQuery->get();
 
         $sales = $salesList->map(function($sale) {
-            $isBank = false;
-            foreach ($sale->payments as $payment) {
-                if (in_array(optional($payment->method)->code, ['bank_transfer', 'card'])) {
-                    $isBank = true;
-                    break;
+            $methods = collect($sale->payments)->map(function($p) {
+                if ($p->method && strtolower($p->method->code) !== 'cash') {
+                    return (object)['code' => $p->method->code, 'name' => $p->method->name];
                 }
-            }
+                return null;
+            })->filter()->unique('code')->values()->all();
             
             return (object)[
                 'date' => $sale->sold_at,
@@ -240,12 +239,15 @@ class ReportController extends Controller
                 'description' => 'Sale to ' . ($sale->customer->name ?? 'Walk-in'),
                 'incoming' => $sale->grand_total,
                 'outgoing' => 0,
-                'is_bank' => $isBank,
+                'methods' => $methods,
             ];
         });
 
         $expenses = $expensesQuery->get()->map(function($expense) {
-            $isBank = in_array(optional($expense->paymentMethod)->code, ['bank_transfer', 'card']);
+            $methods = [];
+            if ($expense->paymentMethod && strtolower($expense->paymentMethod->code) !== 'cash') {
+                $methods[] = (object)['code' => $expense->paymentMethod->code, 'name' => $expense->paymentMethod->name];
+            }
             return (object)[
                 'date' => $expense->expense_date,
                 'type' => 'Expense',
@@ -253,7 +255,7 @@ class ReportController extends Controller
                 'description' => $expense->category->name ?? 'Expense',
                 'incoming' => 0,
                 'outgoing' => $expense->amount,
-                'is_bank' => $isBank,
+                'methods' => $methods,
             ];
         });
 
@@ -274,7 +276,7 @@ class ReportController extends Controller
                 'description' => 'Payment Gateway / Card Fees',
                 'incoming' => 0,
                 'outgoing' => $cardFeeTotal,
-                'is_bank' => true,
+                'methods' => [(object)['code' => 'card', 'name' => 'Card']],
             ]);
         }
 
@@ -285,17 +287,17 @@ class ReportController extends Controller
         $netTotal = $totalIncoming - $totalOutgoing;
         
         $totalDue = $salesList->sum('due_total');
-        $bankTotal = 0;
+        $cardTotal = 0;
         
         foreach ($salesList as $sale) {
             foreach ($sale->payments as $payment) {
-                if (in_array(optional($payment->method)->code, ['bank_transfer', 'card'])) {
-                    $bankTotal += $payment->amount;
+                if (optional($payment->method)->code === 'card') {
+                    $cardTotal += $payment->amount;
                 }
             }
         }
 
-        return $this->render($r, 'reports.ledger', compact('ledger', 'totalIncoming', 'totalOutgoing', 'netTotal', 'totalDue', 'bankTotal', 'cardFeeTotal', 'from', 'to'), 'Daily Ledger Report');
+        return $this->render($r, 'reports.ledger', compact('ledger', 'totalIncoming', 'totalOutgoing', 'netTotal', 'totalDue', 'cardTotal', 'cardFeeTotal', 'from', 'to'), 'Daily Ledger Report');
     }
 
     public function profit(Request $r)

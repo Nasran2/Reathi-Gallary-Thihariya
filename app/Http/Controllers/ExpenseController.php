@@ -10,9 +10,29 @@ use Illuminate\Http\Request;
 
 class ExpenseController extends Controller
 {
-    public function index()
+    public function index(Request $r)
     {
-        return view('expenses.index', ['expenses' => Expense::with('category', 'paymentMethod')->latest('expense_date')->paginate(20), 'categories' => ExpenseCategory::where('active', 1)->get(), 'methods' => PaymentMethod::where('active', 1)->get(), 'stores' => Store::where('active', 1)->get()]);
+        $query = Expense::with('category', 'paymentMethod')->latest('expense_date');
+
+        if ($r->has('from') && $r->filled('from') && $r->filled('to')) {
+            $query->whereBetween('expense_date', [$r->date('from')->toDateString(), $r->date('to')->toDateString()]);
+        } elseif (!$r->has('from')) {
+            // Default to no filter, or maybe keep all time if not specified.
+        }
+
+        if ($r->filled('category_id')) {
+            $query->where('expense_category_id', $r->category_id);
+        }
+
+        $totalAmount = (clone $query)->sum('amount');
+
+        return view('expenses.index', [
+            'expenses' => $query->paginate(20)->withQueryString(), 
+            'totalAmount' => $totalAmount,
+            'categories' => ExpenseCategory::where('active', 1)->get(), 
+            'methods' => PaymentMethod::where('active', 1)->get(), 
+            'stores' => Store::where('active', 1)->get()
+        ]);
     }
 
     public function store(Request $r)
