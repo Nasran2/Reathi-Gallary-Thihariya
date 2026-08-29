@@ -284,6 +284,7 @@ document.addEventListener('submit', event => {
     'purchaseForm',
     'saleShow',
     'saleSuccessModal',
+    'salesList',
     'transfer',
 ].forEach(name => {
     if (typeof window[name] === 'function') {

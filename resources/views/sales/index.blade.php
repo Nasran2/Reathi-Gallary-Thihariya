@@ -80,7 +80,7 @@
 </div>
 @push('scripts')
 <script>
-function salesList() {
+window.salesList = function() {
     return {
         confirmModal: false, 
         modalType: '', 
@@ -99,8 +99,8 @@ function salesList() {
             } 
             this.confirmModal = true; 
         }
-    }
-}
+    };
+};
 </script>
 @endpush
 @endsection
