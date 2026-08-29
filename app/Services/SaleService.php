@@ -23,13 +23,13 @@ class SaleService
 {
     public function __construct(private InventoryService $inventory, private LedgerService $ledger) {}
 
-    public function checkout(array $data, ?int $userId = null): Sale
+    public function checkout(array $data, ?int $userId = null, ?Sale $existingSale = null): Sale
     {
         if ($existing = Sale::where('idempotency_key', $data['idempotency_key'])->first()) {
             return $existing->load('items.product', 'payments.method', 'publicToken');
         }
 
-        return DB::transaction(function () use ($data, $userId) {
+        return DB::transaction(function () use ($data, $userId, $existingSale) {
             if ($existing = Sale::where('idempotency_key', $data['idempotency_key'])->lockForUpdate()->first()) {
                 return $existing;
             }
@@ -37,13 +37,24 @@ class SaleService
             if (! in_array($type, ['main', 'remnant'], true)) {
                 throw ValidationException::withMessages(['sale_type' => 'Invalid POS type.']);
             }
-            $sale = Sale::create([
-                'uuid' => Str::uuid(), 'invoice_no' => ($type === 'remnant' ? 'RPOS' : 'POS').'-'.now()->format('ymdHis').'-'.random_int(10, 99),
-                'idempotency_key' => $data['idempotency_key'], 'sale_type' => $type, 'store_id' => $data['store_id'],
-                'customer_id' => $data['customer_id'] ?? null, 'user_id' => $userId, 'status' => 'completed',
-                'subtotal' => 0, 'discount_total' => 0, 'tax_total' => 0, 'grand_total' => 0, 'paid_total' => 0, 'pending_total' => 0, 'due_total' => 0, 'returned_total' => 0, 'cost_total' => 0, 'profit_total' => 0,
-                'notes' => trim(($data['notes'] ?? '')."\n".($data['staff_note'] ?? '')), 'sold_at' => now(),
-            ]);
+            
+            if ($existingSale) {
+                $sale = $existingSale;
+                $sale->update([
+                    'store_id' => $data['store_id'],
+                    'customer_id' => $data['customer_id'] ?? null,
+                    'user_id' => $userId,
+                    'notes' => trim(($data['notes'] ?? '')."\n".($data['staff_note'] ?? '')),
+                ]);
+            } else {
+                $sale = Sale::create([
+                    'uuid' => Str::uuid(), 'invoice_no' => ($type === 'remnant' ? 'RPOS' : 'POS').'-'.now()->format('ymdHis').'-'.random_int(10, 99),
+                    'idempotency_key' => $data['idempotency_key'], 'sale_type' => $type, 'store_id' => $data['store_id'],
+                    'customer_id' => $data['customer_id'] ?? null, 'user_id' => $userId, 'status' => 'completed',
+                    'subtotal' => 0, 'discount_total' => 0, 'tax_total' => 0, 'grand_total' => 0, 'paid_total' => 0, 'pending_total' => 0, 'due_total' => 0, 'returned_total' => 0, 'cost_total' => 0, 'profit_total' => 0,
+                    'notes' => trim(($data['notes'] ?? '')."\n".($data['staff_note'] ?? '')), 'sold_at' => now(),
+                ]);
+            }
             $subtotal = BigDecimal::zero();
             $discount = BigDecimal::zero();
             $tax = BigDecimal::zero();
@@ -193,81 +204,94 @@ class SaleService
         };
     }
 
+    public function updateSale(Sale $sale, array $data, ?int $userId = null): Sale
+    {
+        return DB::transaction(function () use ($sale, $data, $userId) {
+            $this->revertSaleData($sale, $userId);
+            return $this->checkout($data, $userId, $sale);
+        });
+    }
+
     public function deleteSale(Sale $sale, ?int $userId = null): void
     {
         DB::transaction(function () use ($sale, $userId) {
-            $userId = $userId ?? auth()->id();
-            
-            // Revert Inventory
-            foreach ($sale->items as $item) {
-                if ($item->product) {
-                    $inventoryType = $item->remnant_id ? 'remnant' : 'main';
-                    $this->inventory->move(
-                        $item->product, 
-                        $sale->store_id, 
-                        $inventoryType, 
-                        'sale_return', 
-                        $item->base_quantity, 
-                        0, 
-                        $item->cost_at_sale, 
-                        $item, 
-                        $userId, 
-                        'Reverted sale ' . $sale->invoice_no
-                    );
-                    
-                    if ($inventoryType === 'remnant' && $item->remnant_id) {
-                        $remnant = \App\Models\Remnant::find($item->remnant_id);
-                        if ($remnant) {
-                            $remaining = Decimal::of($remnant->remaining_base_quantity)
-                                ->plus($item->base_quantity)
-                                ->toScale(6, RoundingMode::HalfUp);
-                            $remainingDisplay = Decimal::of($remaining)
-                                ->dividedBy(Decimal::of($remnant->conversion_rate), 6, RoundingMode::HalfUp);
-                            $status = $remaining->isEqualTo(Decimal::of($remnant->original_base_quantity)) 
-                                ? 'available' 
-                                : 'partially_sold';
-                                
-                            $remnant->update([
-                                'remaining_base_quantity' => $remaining,
-                                'remaining_quantity' => $remainingDisplay,
-                                'status' => $status
-                            ]);
-                        }
-                    }
-                }
-            }
-
-            // Revert Customer Ledgers
-            if ($sale->customer_id) {
-                \App\Models\CustomerLedger::where('reference_type', 'App\Models\Sale')->where('reference_id', $sale->id)->delete();
-                foreach ($sale->payments as $payment) {
-                    \App\Models\CustomerLedger::where('reference_type', 'App\Models\SalePayment')->where('reference_id', $payment->id)->delete();
-                }
-            }
-
-            // Revert Bank Fee Expenses
-            \App\Models\Expense::where('reference', $sale->invoice_no)->delete();
-
-            // Revert Cheque Allocations and Cheques created during this sale
-            $allocations = \App\Models\CustomerPaymentAllocation::where('sale_id', $sale->id)->get();
-            foreach ($allocations as $allocation) {
-                $customerPayment = $allocation->payment;
-                $allocation->delete();
-                
-                if ($customerPayment && $customerPayment->allocations()->count() === 0) {
-                    $cheque = $customerPayment->cheque;
-                    $customerPayment->delete();
-                    if ($cheque) {
-                        $cheque->delete();
-                    }
-                }
-            }
-
-            // Delete Records
-            $sale->items()->delete();
-            $sale->payments()->delete();
+            $this->revertSaleData($sale, $userId);
             $sale->publicToken()->delete();
             $sale->delete();
         }, 3);
+    }
+
+    private function revertSaleData(Sale $sale, ?int $userId = null): void
+    {
+        $userId = $userId ?? auth()->id();
+        
+        // Revert Inventory
+        foreach ($sale->items as $item) {
+            if ($item->product) {
+                $inventoryType = $item->remnant_id ? 'remnant' : 'main';
+                $this->inventory->move(
+                    $item->product, 
+                    $sale->store_id, 
+                    $inventoryType, 
+                    'sale_return', 
+                    $item->base_quantity, 
+                    0, 
+                    $item->cost_at_sale, 
+                    $item, 
+                    $userId, 
+                    'Reverted sale ' . $sale->invoice_no
+                );
+                
+                if ($inventoryType === 'remnant' && $item->remnant_id) {
+                    $remnant = \App\Models\Remnant::find($item->remnant_id);
+                    if ($remnant) {
+                        $remaining = Decimal::of($remnant->remaining_base_quantity)
+                            ->plus($item->base_quantity)
+                            ->toScale(6, RoundingMode::HalfUp);
+                        $remainingDisplay = Decimal::of($remaining)
+                            ->dividedBy(Decimal::of($remnant->conversion_rate), 6, RoundingMode::HalfUp);
+                        $status = $remaining->isEqualTo(Decimal::of($remnant->original_base_quantity)) 
+                            ? 'available' 
+                            : 'partially_sold';
+                            
+                        $remnant->update([
+                            'remaining_base_quantity' => $remaining,
+                            'remaining_quantity' => $remainingDisplay,
+                            'status' => $status
+                        ]);
+                    }
+                }
+            }
+        }
+
+        // Revert Customer Ledgers
+        if ($sale->customer_id) {
+            \App\Models\CustomerLedger::where('reference_type', 'App\Models\Sale')->where('reference_id', $sale->id)->delete();
+            foreach ($sale->payments as $payment) {
+                \App\Models\CustomerLedger::where('reference_type', 'App\Models\SalePayment')->where('reference_id', $payment->id)->delete();
+            }
+        }
+
+        // Revert Bank Fee Expenses
+        \App\Models\Expense::where('reference', $sale->invoice_no)->delete();
+
+        // Revert Cheque Allocations and Cheques created during this sale
+        $allocations = \App\Models\CustomerPaymentAllocation::where('sale_id', $sale->id)->get();
+        foreach ($allocations as $allocation) {
+            $customerPayment = $allocation->payment;
+            $allocation->delete();
+            
+            if ($customerPayment && $customerPayment->allocations()->count() === 0) {
+                $cheque = $customerPayment->cheque;
+                $customerPayment->delete();
+                if ($cheque) {
+                    $cheque->delete();
+                }
+            }
+        }
+
+        // Delete Records
+        $sale->items()->delete();
+        $sale->payments()->delete();
     }
 }

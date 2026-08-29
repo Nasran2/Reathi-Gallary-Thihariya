@@ -108,15 +108,14 @@ class SaleController extends Controller
                 $cart[] = $cartItem;
             }
 
-            // Delete the old sale first so stock is returned
-            $saleService->deleteSale($sale);
-            
-            // Redirect to POS with the cart preloaded in session
+            // Do not delete the sale, just pass edit parameters to the POS
             session()->flash('edit_cart', $cart);
             session()->flash('edit_customer', $sale->customer_id);
+            session()->flash('edit_sale_id', $sale->id);
+            session()->flash('edit_invoice_no', $sale->invoice_no);
             
             return redirect()->route($isRemnant ? 'pos.remnant' : 'pos.main')
-                ->with('success', 'Sale voided. You can now edit the items and checkout again.');
+                ->with('success', 'Sale loaded for editing. Invoice #' . $sale->invoice_no);
                 
         } catch (\Exception $e) {
             return redirect()->route('sales.index')->with('error', 'Failed to edit sale: ' . $e->getMessage());

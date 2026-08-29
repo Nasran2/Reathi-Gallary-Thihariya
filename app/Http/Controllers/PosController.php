@@ -37,9 +37,16 @@ class PosController extends Controller
 
     public function checkout(Request $r, SaleService $service, SmsService $sms)
     {
-        $payload = $r->validate(['sale_type' => 'required|in:main,remnant', 'store_id' => 'required|exists:stores,id', 'customer_id' => 'nullable|exists:customers,id', 'idempotency_key' => 'required|string|max:100', 'notes' => 'nullable', 'send_sms' => 'boolean', 'items' => 'required|array|min:1', 'items.*.product_id' => 'required|exists:products,id', 'items.*.unit_id' => 'required|exists:units,id', 'items.*.remnant_id' => 'nullable|exists:remnants,id', 'items.*.quantity' => 'required|numeric|gt:0', 'items.*.unit_price' => 'required|numeric|min:0', 'items.*.discount_amount' => 'nullable|numeric|min:0', 'items.*.tax_amount' => 'nullable|numeric|min:0', 'items.*.notes' => 'nullable', 'payments' => 'nullable|array', 'payments.*.payment_method_id' => 'required|exists:payment_methods,id', 'payments.*.amount' => 'required|numeric|min:0', 'payments.*.reference' => 'nullable|string|max:150', 'payments.*.cheque_number' => 'nullable|string|max:80', 'payments.*.bank' => 'nullable|string|max:120', 'payments.*.cheque_date' => 'nullable|date']);
+        $payload = $r->validate(['sale_type' => 'required|in:main,remnant', 'store_id' => 'required|exists:stores,id', 'customer_id' => 'nullable|exists:customers,id', 'idempotency_key' => 'required|string|max:100', 'notes' => 'nullable', 'send_sms' => 'boolean', 'items' => 'required|array|min:1', 'items.*.product_id' => 'required|exists:products,id', 'items.*.unit_id' => 'required|exists:units,id', 'items.*.remnant_id' => 'nullable|exists:remnants,id', 'items.*.quantity' => 'required|numeric|gt:0', 'items.*.unit_price' => 'required|numeric|min:0', 'items.*.discount_amount' => 'nullable|numeric|min:0', 'items.*.tax_amount' => 'nullable|numeric|min:0', 'items.*.notes' => 'nullable', 'payments' => 'nullable|array', 'payments.*.payment_method_id' => 'required|exists:payment_methods,id', 'payments.*.amount' => 'required|numeric|min:0', 'payments.*.reference' => 'nullable|string|max:150', 'payments.*.cheque_number' => 'nullable|string|max:80', 'payments.*.bank' => 'nullable|string|max:120', 'payments.*.cheque_date' => 'nullable|date', 'edit_sale_id' => 'nullable|exists:sales,id']);
         $this->authorize($payload['sale_type'] === 'remnant' ? 'pos.remnant.sell' : 'pos.main.sell');
-        $sale = $service->checkout($payload, $r->user()->id);
+        
+        if (!empty($payload['edit_sale_id'])) {
+            $sale = \App\Models\Sale::findOrFail($payload['edit_sale_id']);
+            $sale = $service->updateSale($sale, $payload, $r->user()->id);
+        } else {
+            $sale = $service->checkout($payload, $r->user()->id);
+        }
+        
         if ($r->boolean('send_sms')) {
             $sms->sendInvoice($sale, $r->user()->id);
         }
