@@ -41,6 +41,7 @@ Route::middleware('auth')->group(function () {
     Route::resource('products', ProductController::class)->only(['edit', 'update'])->middleware('permission:products.edit');
     Route::resource('products', ProductController::class)->only(['destroy'])->middleware('permission:products.delete');
     Route::post('/products/{product}/toggle-favorite', [ProductController::class, 'toggleFavorite'])->name('products.toggle-favorite');
+    Route::post('/products/favorites/reorder', [ProductController::class, 'reorderFavorites'])->name('products.favorites.reorder');
     Route::get('/purchases/returns', [ReturnController::class, 'purchases'])->name('purchases.returns')->middleware('permission:purchases.return');
     Route::get('/purchases/returns/create', [ReturnController::class, 'createPurchaseReturn'])->name('purchases.returns.create')->middleware('permission:purchases.return');
     Route::get('/api/purchases/supplier/{supplier_id}', [ReturnController::class, 'getSupplierPurchases'])->middleware('permission:purchases.return');

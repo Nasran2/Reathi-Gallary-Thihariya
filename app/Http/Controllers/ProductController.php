@@ -219,8 +219,34 @@ class ProductController extends Controller
     public function toggleFavorite(Product $product)
     {
         $this->authorize('products.edit');
-        $product->update(['is_favorite' => !$product->is_favorite]);
+        
+        if ($product->is_favorite) {
+            $product->update(['is_favorite' => false, 'favorite_order' => 0]);
+        } else {
+            $maxOrder = Product::max('favorite_order') ?? 0;
+            $product->update(['is_favorite' => true, 'favorite_order' => $maxOrder + 1]);
+        }
         
         return response()->json(['success' => true, 'is_favorite' => $product->is_favorite]);
+    }
+
+    public function reorderFavorites(\Illuminate\Http\Request $request)
+    {
+        $this->authorize('products.edit');
+        
+        $ids = $request->input('favorite_ids', []);
+        
+        // Clear existing favorites
+        Product::where('is_favorite', true)->update(['is_favorite' => false, 'favorite_order' => 0]);
+        
+        // Set new order
+        foreach ($ids as $index => $id) {
+            Product::where('id', $id)->update([
+                'is_favorite' => true,
+                'favorite_order' => $index + 1
+            ]);
+        }
+        
+        return response()->json(['success' => true]);
     }
 }

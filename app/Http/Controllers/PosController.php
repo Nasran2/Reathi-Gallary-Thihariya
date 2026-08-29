@@ -24,7 +24,7 @@ class PosController extends Controller
         if ($type === 'remnant') {
             $items = Remnant::with(['product', 'unit'])->where('store_id', $store->id)->whereIn('status', ['available', 'partially_sold'])->latest()->get();
         } else {
-            $items = Product::with(['productUnits.unit', 'balances' => fn ($q) => $q->where('store_id', $store->id)->where('inventory_type', 'main')])->where('active', 1)->orderByDesc('is_favorite')->get();
+            $items = Product::with(['productUnits.unit', 'balances' => fn ($q) => $q->where('store_id', $store->id)->where('inventory_type', 'main')])->where('active', 1)->orderByDesc('is_favorite')->orderBy('favorite_order')->get();
         }
 
         $saleSuccess = null;
