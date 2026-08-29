@@ -1,25 +1,7 @@
 @extends('layouts.app') 
 @section('title','Sales') 
 @section('content')
-<div x-data="{ 
-    confirmModal: false, 
-    modalType: '', 
-    modalActionUrl: '', 
-    modalTitle: '', 
-    modalMessage: '', 
-    openModal(type, url) { 
-        this.modalType = type; 
-        this.modalActionUrl = url; 
-        if (type === 'delete') { 
-            this.modalTitle = 'Delete Sale'; 
-            this.modalMessage = 'Are you sure you want to delete this sale? This will reverse stock, ledgers, cheques, and bank fees.'; 
-        } else { 
-            this.modalTitle = 'Edit Sale'; 
-            this.modalMessage = 'Editing will void this sale, return its stock, and load its items back into the POS cart. Proceed?'; 
-        } 
-        this.confirmModal = true; 
-    } 
-}">
+<div x-data="salesList()">
 
     <div class="mb-6 flex justify-between">
         <div>
@@ -96,4 +78,29 @@
         </div>
     </div>
 </div>
+@push('scripts')
+<script>
+function salesList() {
+    return {
+        confirmModal: false, 
+        modalType: '', 
+        modalActionUrl: '', 
+        modalTitle: '', 
+        modalMessage: '', 
+        openModal(type, url) { 
+            this.modalType = type; 
+            this.modalActionUrl = url; 
+            if (type === 'delete') { 
+                this.modalTitle = 'Delete Sale'; 
+                this.modalMessage = 'Are you sure you want to delete this sale? This will reverse stock, ledgers, cheques, and bank fees.'; 
+            } else { 
+                this.modalTitle = 'Edit Sale'; 
+                this.modalMessage = 'Editing will void this sale, return its stock, and load its items back into the POS cart. Proceed?'; 
+            } 
+            this.confirmModal = true; 
+        }
+    }
+}
+</script>
+@endpush
 @endsection
