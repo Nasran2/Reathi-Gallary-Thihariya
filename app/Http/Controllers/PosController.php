@@ -51,6 +51,11 @@ class PosController extends Controller
             $sms->sendInvoice($sale, $r->user()->id);
         }
 
+        if ($r->wantsJson()) {
+            session()->flash('sale_success', $sale->id);
+            return response()->json(['success' => true, 'redirect' => route('pos.' . $payload['sale_type'])]);
+        }
+
         return redirect()->route('pos.' . $payload['sale_type'])->with('sale_success', $sale->id);
     }
 }

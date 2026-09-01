@@ -134,4 +134,55 @@ class ReturnController extends Controller
 
         return response()->json($items);
     }
+    public function createManualSaleReturn(Request $r)
+    {
+        $customers = \App\Models\Customer::all();
+        $products = \App\Models\Product::with('productUnits.unit', 'balances')->get();
+        $catalog = $products->map(fn($p) => [
+            'id' => $p->id, 
+            'name' => $p->name, 
+            'sku' => $p->sku, 
+            'average_cost' => (float)$p->average_cost, 
+            'main_price' => (float)$p->main_selling_price,
+            'units' => $p->productUnits->map(fn($u) => [
+                'id' => $u->unit_id, 
+                'name' => $u->unit->name, 
+                'symbol' => $u->unit->symbol,
+                'rate' => (float)$u->conversion_rate,
+                'price' => (float)($u->main_price ?? ($p->main_selling_price * $u->conversion_rate))
+            ])
+        ]);
+        return view('returns.sales_manual', compact('customers', 'catalog'));
+    }
+
+    public function storeManualSale(Request $r, ReturnService $service, \App\Services\SaleService $saleService)
+    {
+        $data = $r->validate([
+            'customer_id' => 'nullable|exists:customers,id',
+            'return_date' => 'required|date',
+            'reason' => 'required|max:255',
+            'notes' => 'nullable',
+            'items' => 'required|array',
+            'items.*.product_id' => 'required|exists:products,id',
+            'items.*.unit_id' => 'required|exists:units,id',
+            'items.*.quantity' => 'required|numeric|min:0.001',
+            'items.*.price' => 'required|numeric|min:0',
+            'settlement' => 'required|in:cash_refund,exchange',
+            'exchange_items' => 'nullable|array',
+            'exchange_items.*.product_id' => 'required_with:exchange_items|exists:products,id',
+            'exchange_items.*.unit_id' => 'required_with:exchange_items|exists:units,id',
+            'exchange_items.*.quantity' => 'required_with:exchange_items|numeric|min:0.001',
+            'exchange_items.*.price' => 'required_with:exchange_items|numeric|min:0',
+        ]);
+
+        $return = \Illuminate\Support\Facades\DB::transaction(function () use ($data, $r, $service, $saleService) {
+            return $service->manualSale($data, $saleService, $r->user()->id);
+        });
+
+        if ($r->wantsJson()) {
+            return response()->json(['redirect' => route('sales.returns')]);
+        }
+
+        return redirect()->route('sales.returns')->with('success', 'Manual Sales return posted.');
+    }
 }

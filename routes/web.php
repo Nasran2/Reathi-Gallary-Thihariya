@@ -49,6 +49,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/purchases/returns', [ReturnController::class, 'storePurchase'])->name('purchases.returns.store')->middleware('permission:purchases.return');
     Route::get('/sales/returns', [ReturnController::class, 'sales'])->name('sales.returns')->middleware('permission:sales.return');
     Route::post('/sales/returns', [ReturnController::class, 'storeSale'])->name('sales.returns.store')->middleware('permission:sales.return');
+    Route::get('/sales/returns/manual', [ReturnController::class, 'createManualSaleReturn'])->name('sales.returns.manual')->middleware('permission:sales.return');
+    Route::post('/sales/returns/manual', [ReturnController::class, 'storeManualSale'])->name('sales.returns.manual.store')->middleware('permission:sales.return');
     Route::resource('purchases', PurchaseController::class)->only(['create', 'store'])->middleware('permission:purchases.create');
     Route::resource('purchases', PurchaseController::class)->only(['index', 'show'])->middleware('permission:purchases.view');
     Route::resource('purchases', PurchaseController::class)->only(['destroy'])->middleware('permission:purchases.cancel');

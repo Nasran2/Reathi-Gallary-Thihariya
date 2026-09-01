@@ -10,7 +10,7 @@ class SaleReturn extends Model
 
     protected function casts(): array
     {
-        return ['return_date' => 'date', 'return_total' => 'decimal:4', 'cost_total' => 'decimal:4'];
+        return ['return_date' => 'date', 'return_total' => 'decimal:4', 'cost_total' => 'decimal:4', 'refund_amount' => 'decimal:4', 'is_manual' => 'boolean'];
     }
 
     public function sale()

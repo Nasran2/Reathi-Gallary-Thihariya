@@ -222,6 +222,12 @@ class ReportController extends Controller
             $expensesQuery->whereBetween('expense_date', [$from->startOfDay(), $to->endOfDay()]);
         }
         
+        $returnsQuery = SaleReturn::with('customer')->where('refund_amount', '>', 0);
+        if ($from && $to) {
+            $returnsQuery->whereBetween('return_date', [$from->startOfDay(), $to->endOfDay()]);
+        }
+        $returnsList = $returnsQuery->get();
+        
         $salesList = $salesQuery->get();
 
         $sales = $salesList->map(function($sale) {
@@ -259,6 +265,18 @@ class ReportController extends Controller
             ];
         });
 
+        $refunds = $returnsList->map(function($return) {
+            return (object)[
+                'date' => $return->return_date,
+                'type' => 'Cash Refund',
+                'reference' => $return->return_no,
+                'description' => 'Return Refund ' . ($return->is_manual ? '(Manual) ' : '') . 'to ' . ($return->customer->name ?? 'Walk-in'),
+                'incoming' => 0,
+                'outgoing' => $return->refund_amount,
+                'methods' => [], // Default Cash
+            ];
+        });
+
         $cardFeeTotal = 0;
         foreach ($salesList as $sale) {
             foreach ($sale->payments as $payment) {
@@ -280,7 +298,7 @@ class ReportController extends Controller
             ]);
         }
 
-        $ledger = $sales->concat($expenses)->sortBy('date')->values();
+        $ledger = $sales->concat($expenses)->concat($refunds)->sortBy('date')->values();
         
         $totalIncoming = $ledger->sum('incoming');
         $totalOutgoing = $ledger->sum('outgoing');
@@ -303,6 +321,8 @@ class ReportController extends Controller
                 }
             }
         }
+        
+        $cashTotal -= $returnsList->sum('refund_amount');
 
         return $this->render($r, 'reports.ledger', compact('ledger', 'totalIncoming', 'totalOutgoing', 'netTotal', 'totalDue', 'cardTotal', 'bankTotal', 'cashTotal', 'cardFeeTotal', 'from', 'to'), 'Daily Ledger Report');
     }

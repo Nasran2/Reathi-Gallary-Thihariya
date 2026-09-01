@@ -82,6 +82,148 @@ class ReturnService
         }, 3);
     }
 
+    public function manualSale(array $data, SaleService $saleService, ?int $userId = null): SaleReturn
+    {
+        return DB::transaction(function () use ($data, $userId, $saleService) {
+            $customer = !empty($data['customer_id']) ? \App\Models\Customer::find($data['customer_id']) : null;
+            
+            $return = SaleReturn::create([
+                'uuid' => Str::uuid(), 
+                'return_no' => 'MSR-'.now()->format('ymdHis').'-'.random_int(10, 99), 
+                'sale_id' => null, 
+                'is_manual' => true,
+                'customer_id' => $customer?->id, 
+                'return_date' => $data['return_date'], 
+                'return_total' => 0, 
+                'cost_total' => 0, 
+                'settlement' => $data['settlement'], 
+                'reason' => $data['reason'], 
+                'notes' => $data['notes'] ?? null, 
+                'created_by' => $userId
+            ]);
+            
+            $total = BigDecimal::zero();
+            $cost = BigDecimal::zero();
+            
+            foreach ($data['items'] as $itemData) {
+                $qty = Decimal::of($itemData['quantity']);
+                $price = Decimal::of($itemData['price']);
+                if ($qty->isLessThanOrEqualTo(0)) {
+                    continue;
+                }
+                
+                $product = \App\Models\Product::find($itemData['product_id']);
+                $unit = \App\Models\Unit::find($itemData['unit_id']);
+                
+                // Assuming default store is 1 for manual returns
+                $store_id = 1; 
+                
+                // Fetch conversion rate
+                $productUnit = \App\Models\ProductUnit::where('product_id', $product->id)->where('unit_id', $unit->id)->first();
+                $conversionRate = $productUnit ? $productUnit->conversion_rate : 1;
+                
+                $baseQty = $qty->multipliedBy(Decimal::of($conversionRate))->toScale(6, RoundingMode::HalfUp);
+                $amount = $qty->multipliedBy($price)->toScale(4, RoundingMode::HalfUp);
+                $costAmount = $baseQty->multipliedBy(Decimal::of($product->average_cost))->toScale(4, RoundingMode::HalfUp);
+                
+                $line = $return->items()->create([
+                    'sale_item_id' => null, 
+                    'product_id' => $product->id, 
+                    'unit_id' => $unit->id, 
+                    'quantity' => $qty, 
+                    'base_quantity' => $baseQty, 
+                    'return_amount' => $amount, 
+                    'cost_amount' => $costAmount
+                ]);
+                
+                $this->inventory->move($product, $store_id, 'main', 'sales_return', $baseQty, 0, $product->average_cost, $line, $userId, $return->return_no);
+                
+                $total = $total->plus($amount);
+                $cost = $cost->plus($costAmount);
+            }
+            
+            
+
+            if ($customer) {
+                $this->ledger->customer($customer, 'sales_return', 0, $total, $return, $return->return_no, 0, $data['return_date']);
+                
+                if ($data['settlement'] === 'cash_refund') {
+                    $this->ledger->customer($customer, 'return_refund', $total, 0, $return, 'Cash refund (Manual) '.$return->return_no, 0, $data['return_date']);
+                }
+            }
+            
+            $refundAmount = 0;
+            if ($data['settlement'] === 'cash_refund') {
+                $refundAmount = (float) Decimal::money($total);
+            }
+            
+            // Exchange logic
+            if ($data['settlement'] === 'exchange' && !empty($data['exchange_items'])) {
+                $exchangeTotal = collect($data['exchange_items'])->sum(function($ex) {
+                    return $ex['quantity'] * $ex['price'];
+                });
+                
+                $paymentMethod = \App\Models\PaymentMethod::where('code', 'cash')->first();
+                
+                // Create a new Sale for the exchange
+                $saleData = [
+                    'customer_id' => $customer?->id,
+                    'store_id' => 1,
+                    'sale_type' => 'main',
+                    'notes' => 'Exchange from manual return: ' . $return->return_no,
+                    'global_discount_type' => 'fixed',
+                    'global_discount_value' => 0,
+                    'items' => collect($data['exchange_items'])->map(function($ex) {
+                        return [
+                            'product_id' => $ex['product_id'],
+                            'unit_id' => $ex['unit_id'],
+                            'quantity' => $ex['quantity'],
+                            'unit_price' => $ex['price'],
+                            'discount_type' => 'fixed',
+                            'discount_value' => 0,
+                            'remnant_id' => null,
+                        ];
+                    })->toArray(),
+                    'payments' => []
+                ];
+                
+                $exchangeSale = $saleService->create($saleData, 'EXC-'.$return->return_no, $userId);
+                
+                if ($exchangeTotal > (float) Decimal::money($total)) {
+                    // Customer pays the difference
+                    $diff = $exchangeTotal - (float) Decimal::money($total);
+                    $exchangeSale->payments()->create([
+                        'payment_method_id' => $paymentMethod?->id,
+                        'amount' => $diff,
+                        'payment_date' => $data['return_date'],
+                        'status' => 'completed',
+                        'note' => 'Paid difference for exchange'
+                    ]);
+                    $exchangeSale->update(['due_total' => 0, 'paid_total' => $exchangeSale->paid_total + $diff]);
+                    
+                    if ($customer) {
+                        $this->ledger->customer($customer, 'payment', 0, $diff, $exchangeSale, 'Paid difference for exchange EXC-'.$return->return_no, 0, $data['return_date']);
+                    }
+                } elseif ($exchangeTotal < (float) Decimal::money($total)) {
+                    // Store refunds the difference
+                    $diff = (float) Decimal::money($total) - $exchangeTotal;
+                    $refundAmount = $diff;
+                    if ($customer) {
+                        $this->ledger->customer($customer, 'return_refund', $diff, 0, $return, 'Cash refund (Exchange difference) '.$return->return_no, 0, $data['return_date']);
+                    }
+                }
+            }
+
+            $return->update([
+                'return_total' => Decimal::money($total), 
+                'cost_total' => Decimal::money($cost),
+                'refund_amount' => $refundAmount
+            ]);
+
+            return $return;
+        }, 3);
+    }
+
     public function purchase(array $data, ?int $userId = null): PurchaseReturn
     {
         return DB::transaction(function () use ($data, $userId) {
