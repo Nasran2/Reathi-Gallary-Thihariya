@@ -160,7 +160,7 @@
                         <span x-text="netDifference > 0 ? 'Customer Pays (Cash In):' : (netDifference < 0 ? 'Store Refunds (Cash Out):' : 'Difference:')"></span>
                     </div>
                     <div class="text-2xl font-bold" :class="netDifference > 0 ? 'text-emerald-600' : (netDifference < 0 ? 'text-red-600' : 'text-slate-600')">
-                        Rs. <span x-text="money(Math.abs(netDifference))"></span>
+                        Rs. <span x-text="money(netDifference < 0 ? -netDifference : netDifference)"></span>
                     </div>
                 </div>
             </div>
