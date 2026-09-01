@@ -48,9 +48,6 @@
                             <td class="p-3">
                                 <select class="w-full min-w-[14rem]" x-model.number="item.product_id" @change="productChanged(item)" required x-init="initSelectItem($el, i, 'items')">
                                     <option value="">Select product</option>
-                                    <template x-for="p in catalog" :key="p.id">
-                                        <option :value="p.id" x-text="p.name + ' · ' + p.sku"></option>
-                                    </template>
                                 </select>
                             </td>
                             <td class="p-3">
@@ -125,9 +122,6 @@
                                 <td class="p-2">
                                     <select class="w-full min-w-[14rem]" x-model.number="ex.product_id" @change="exchangeProductChanged(ex)" required x-init="initSelectItem($el, i, 'exchange_items')">
                                         <option value="">Select product</option>
-                                        <template x-for="p in catalog" :key="p.id">
-                                            <option :value="p.id" x-text="p.name + ' · ' + p.sku"></option>
-                                        </template>
                                     </select>
                                 </td>
                                 <td class="p-2">
@@ -216,8 +210,16 @@ document.addEventListener('alpine:init', () => {
 
         initSelectItem(element, index, listType) {
             if (!element.tomselect) {
+                let selectOptions = this.catalog.map(p => ({
+                    value: p.id,
+                    text: p.name + ' · ' + p.sku
+                }));
                 let ts = new TomSelect(element, { 
                     dropdownParent: 'body',
+                    options: selectOptions,
+                    valueField: 'value',
+                    labelField: 'text',
+                    searchField: 'text',
                     onChange: (val) => {
                         this[listType][index].product_id = val;
                         if (listType === 'items') {
