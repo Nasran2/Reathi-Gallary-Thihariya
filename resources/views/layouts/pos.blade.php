@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>@yield('title','POS') · {{ \App\Models\BusinessSetting::read('legal_name') ?: \App\Models\BusinessSetting::read('business_name','Reathi Gallery') }}</title>
+    <title>@yield('title','POS') · {{ \App\Models\BusinessSetting::read('business_name', 'Store Name') }}</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
     @vite(['resources/css/app.css','resources/js/app.js'])
     @stack('styles')
@@ -14,7 +14,7 @@
         <header class="pos-app-header sticky top-0 z-20 flex min-h-14 items-center justify-between border-b border-slate-800 bg-ink px-3 py-2 text-white sm:px-4 lg:px-8">
             <div class="flex items-center gap-4">
                 <a href="{{ route('dashboard') }}" class="flex items-center gap-3 hover:text-slate-300">
-                    <div class="grid h-8 w-8 place-items-center rounded bg-teal font-serif text-lg">R</div>
+                    <div class="grid h-8 w-8 place-items-center rounded bg-teal font-serif text-lg">{{ strtoupper(substr(\App\Models\BusinessSetting::read('business_name', 'S'), 0, 1)) }}</div>
                     <div class="hidden sm:block font-semibold">Dashboard</div>
                 </a>
                 <div class="h-6 w-px bg-white/20"></div>

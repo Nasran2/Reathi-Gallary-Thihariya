@@ -19,7 +19,7 @@ class SmsService
             return ($item->product?->name ?? 'Unknown') . ' x ' . floatval($item->quantity) . ' = ' . number_format($item->subtotal, 2, '.', '');
         })->implode("\n");
 
-        $businessName = BusinessSetting::read('legal_name') ?: BusinessSetting::read('business_name', 'Reathi Gallery');
+        $businessName = BusinessSetting::read('business_name', 'Store Name');
 
         $message = strtr($template, [
             '{customer_name}' => $sale->customer?->name ?? 'Customer', '{business_name}' => $businessName,

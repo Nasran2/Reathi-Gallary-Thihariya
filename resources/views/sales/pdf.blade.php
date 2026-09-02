@@ -208,7 +208,7 @@
     <table class="header">
         <tr>
             <td style="width: 58%;">
-                <div class="business-name">{{ \App\Models\BusinessSetting::read('legal_name') ?: \App\Models\BusinessSetting::read('business_name', 'Reathi Gallery') }}</div>
+                <div class="business-name">{{ \App\Models\BusinessSetting::read('business_name', 'Store Name') }}</div>
                 <div class="muted"><strong>{{ $sale->store->name ?? 'Main Store' }}</strong></div>
                 @if(\App\Models\BusinessSetting::read('address'))<div class="muted">{{ \App\Models\BusinessSetting::read('address') }}</div>@endif
                 @if(\App\Models\BusinessSetting::read('phone'))<div class="muted">Tel: {{ \App\Models\BusinessSetting::read('phone') }}</div>@endif
