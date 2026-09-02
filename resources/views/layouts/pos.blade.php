@@ -70,7 +70,7 @@
             @yield('content')
         </div>
         <footer class="border-t border-slate-200 bg-white px-4 py-2 text-center text-[10px] text-slate-400">
-            Software powered by <a class="font-semibold text-teal hover:underline" href="https://twinsofte.com" target="_blank" rel="noopener">Twinsofte.com</a>
+            Software powered by <span class="font-semibold text-teal">{{ env('developername', 'Twinsofte.com') }}{{ env('developer_phone') ? ' | ' . env('developer_phone') : '' }}</span>
         </footer>
     </main>
     

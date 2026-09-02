@@ -201,7 +201,7 @@
             <br>
             {!! \App\Support\QrCodeRenderer::render(route('invoice.public', $sale->publicToken->token), 80) !!}<br>
             Scan to view digital invoice<br>
-            <span style="display:block;margin-top:8px;color:#666;">Software powered by <strong>Twinsofte.com</strong></span>
+            <span style="display:block;margin-top:8px;color:#666;">Software powered by <strong>{{ env('developername', 'Twinsofte.com') }}{{ env('developer_phone') ? ' | ' . env('developer_phone') : '' }}</strong></span>
         </div>
     </div>
 </body>

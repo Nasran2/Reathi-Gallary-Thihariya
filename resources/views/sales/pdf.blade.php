@@ -315,7 +315,7 @@
     <div class="footer">
         <div class="thanks">Thank you for your business.</div>
         Goods once sold can only be returned according to the store return policy.
-        <div class="powered">Software powered by <a href="https://twinsofte.com">Twinsofte.com</a></div>
+        <div class="powered">Software powered by <strong>{{ env('developername', 'Twinsofte.com') }}{{ env('developer_phone') ? ' | ' . env('developer_phone') : '' }}</strong></div>
     </div>
 </body>
 </html>

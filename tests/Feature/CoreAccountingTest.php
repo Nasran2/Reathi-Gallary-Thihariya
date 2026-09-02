@@ -160,7 +160,7 @@ class CoreAccountingTest extends TestCase
         $html = view('sales.pdf', compact('sale'))->render();
         $this->assertStringContainsString('Payment summary', $html);
         $this->assertStringContainsString('Software powered by', $html);
-        $this->assertStringContainsString('Twinsofte.com', $html);
+        $this->assertStringContainsString(env('developername', 'Twinsofte.com'), $html);
 
         $response = $this->actingAs($user)->get(route('sales.pdf', $sale));
         $response->assertOk()->assertHeader('content-type', 'application/pdf');

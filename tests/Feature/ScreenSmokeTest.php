@@ -40,7 +40,7 @@ class ScreenSmokeTest extends TestCase
         $this->get(route('login'))
             ->assertOk()
             ->assertSee('Software powered by')
-            ->assertSee('Twinsofte.com')
+            ->assertSee(env('developername', 'Twinsofte.com'))
             ->assertDontSee('Default setup:')
             ->assertDontSee('admin@reathi.test');
 
@@ -50,11 +50,11 @@ class ScreenSmokeTest extends TestCase
         $this->get(route('dashboard'))
             ->assertOk()
             ->assertSee('Software powered by')
-            ->assertSee('https://twinsofte.com', false);
+            ->assertSee(env('developername', 'Twinsofte.com'), false);
 
         $this->get(route('pos.main'))
             ->assertOk()
             ->assertSee('Software powered by')
-            ->assertSee('Twinsofte.com');
+            ->assertSee(env('developername', 'Twinsofte.com'));
     }
 }
