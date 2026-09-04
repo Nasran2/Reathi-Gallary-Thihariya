@@ -6,9 +6,52 @@
         <h1 class="font-serif text-3xl text-ink">Products</h1>
         <p class="text-sm text-slate-500">Units, conversion rates and separate prices in one catalogue.</p>
     </div>
-    @can('products.create')
-        <a href="{{ route('products.create') }}" class="btn-teal">+ Add product</a>
-    @endcan
+    <div class="flex items-center gap-2">
+        <div x-data="{ printModalOpen: false }" class="inline-block">
+            <button @click="printModalOpen = true" class="btn-soft"><i class="ti ti-printer"></i> Print PDF</button>
+
+            <div x-show="printModalOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50" style="display: none;">
+                <div class="card w-full max-w-sm" @click.away="printModalOpen = false">
+                    <h2 class="mb-4 text-xl font-semibold text-ink">Print Products List</h2>
+                    <form action="{{ route('products.print') }}" target="_blank" method="GET">
+                        @if(request('q'))
+                        <input type="hidden" name="q" value="{{ request('q') }}">
+                        @endif
+                        <div class="mb-5 space-y-2">
+                            <p class="mb-3 text-sm text-slate-500">Select the columns to include in the report:</p>
+                            <label class="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 p-3 text-sm font-medium normal-case tracking-normal text-slate-700 transition hover:bg-slate-50" style="margin-bottom: 0;">
+                                <input type="checkbox" name="cols[]" value="product" checked class="h-5 w-5 rounded border-slate-300 text-teal focus:ring-teal"> 
+                                <span>Product Name</span>
+                            </label>
+                            <label class="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 p-3 text-sm font-medium normal-case tracking-normal text-slate-700 transition hover:bg-slate-50" style="margin-bottom: 0;">
+                                <input type="checkbox" name="cols[]" value="barcode" checked class="h-5 w-5 rounded border-slate-300 text-teal focus:ring-teal"> 
+                                <span>Barcode/SKU</span>
+                            </label>
+                            <label class="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 p-3 text-sm font-medium normal-case tracking-normal text-slate-700 transition hover:bg-slate-50" style="margin-bottom: 0;">
+                                <input type="checkbox" name="cols[]" value="units" checked class="h-5 w-5 rounded border-slate-300 text-teal focus:ring-teal"> 
+                                <span>Units & Prices</span>
+                            </label>
+                            <label class="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 p-3 text-sm font-medium normal-case tracking-normal text-slate-700 transition hover:bg-slate-50" style="margin-bottom: 0;">
+                                <input type="checkbox" name="cols[]" value="main_stock" checked class="h-5 w-5 rounded border-slate-300 text-teal focus:ring-teal"> 
+                                <span>Main Stock</span>
+                            </label>
+                            <label class="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 p-3 text-sm font-medium normal-case tracking-normal text-slate-700 transition hover:bg-slate-50" style="margin-bottom: 0;">
+                                <input type="checkbox" name="cols[]" value="cost" checked class="h-5 w-5 rounded border-slate-300 text-teal focus:ring-teal"> 
+                                <span>Cost</span>
+                            </label>
+                        </div>
+                        <div class="flex justify-end gap-2">
+                            <button type="button" @click="printModalOpen = false" class="btn-soft">Cancel</button>
+                            <button type="submit" class="btn-teal" @click="printModalOpen = false">Generate PDF</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        @can('products.create')
+            <a href="{{ route('products.create') }}" class="btn-teal">+ Add product</a>
+        @endcan
+    </div>
 </div>
 
 <form class="mb-5">

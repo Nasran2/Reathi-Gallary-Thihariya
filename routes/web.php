@@ -36,6 +36,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/pos/main', [PosController::class, 'index'])->defaults('type', 'main')->name('pos.main')->middleware('permission:pos.main.access');
     Route::get('/pos/remnant', [PosController::class, 'index'])->defaults('type', 'remnant')->name('pos.remnant')->middleware('permission:pos.remnant.access');
     Route::post('/pos/checkout', [PosController::class, 'checkout'])->name('pos.checkout')->middleware('permission:pos.main.sell|pos.remnant.sell');
+    Route::get('/products/print', [ProductController::class, 'print'])->name('products.print')->middleware('permission:products.view');
     Route::resource('products', ProductController::class)->only(['create', 'store'])->middleware('permission:products.create');
     Route::resource('products', ProductController::class)->only(['index', 'show'])->middleware('permission:products.view');
     Route::resource('products', ProductController::class)->only(['edit', 'update'])->middleware('permission:products.edit');

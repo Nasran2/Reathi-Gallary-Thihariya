@@ -23,6 +23,20 @@ class ProductController extends Controller
         return view('products.index', compact('products'));
     }
 
+    public function print(Request $r)
+    {
+        $this->authorize('products.view');
+        
+        $products = Product::with(['category', 'baseUnit', 'productUnits.unit', 'balances'])
+            ->when($r->q, fn ($q, $v) => $q->where(fn ($s) => $s->where('name', 'like', "%$v%")->orWhere('sku', 'like', "%$v%")->orWhere('barcode', 'like', "%$v%")))
+            ->latest()
+            ->get();
+            
+        $cols = $r->input('cols', ['product', 'barcode', 'units', 'main_stock', 'cost']);
+
+        return view('products.print', compact('products', 'cols'));
+    }
+
     public function create()
     {
         return view('products.form', $this->formData(new Product));
