@@ -18,7 +18,15 @@ class ProductController extends Controller
 {
     public function index(Request $r)
     {
-        $products = Product::with(['category', 'baseUnit', 'productUnits.unit', 'balances'])->when($r->q, fn ($q, $v) => $q->where(fn ($s) => $s->where('name', 'like', "%$v%")->orWhere('sku', 'like', "%$v%")->orWhere('barcode', 'like', "%$v%")))->latest()->paginate(20)->withQueryString();
+        $sort = $r->input('sort', 'default');
+        
+        $products = Product::with(['category', 'baseUnit', 'productUnits.unit', 'balances'])
+            ->when($r->q, fn ($q, $v) => $q->where(fn ($s) => $s->where('name', 'like', "%$v%")->orWhere('sku', 'like', "%$v%")->orWhere('barcode', 'like', "%$v%")))
+            ->when($sort === 'name', fn ($q) => $q->orderBy('name', 'asc'))
+            ->when($sort === 'barcode', fn ($q) => $q->orderBy('barcode', 'asc')->orderBy('sku', 'asc'))
+            ->when($sort === 'default', fn ($q) => $q->latest())
+            ->paginate(20)
+            ->withQueryString();
 
         return view('products.index', compact('products'));
     }
@@ -27,9 +35,13 @@ class ProductController extends Controller
     {
         $this->authorize('products.view');
         
+        $sort = $r->input('sort', 'default');
+        
         $products = Product::with(['category', 'baseUnit', 'productUnits.unit', 'balances'])
             ->when($r->q, fn ($q, $v) => $q->where(fn ($s) => $s->where('name', 'like', "%$v%")->orWhere('sku', 'like', "%$v%")->orWhere('barcode', 'like', "%$v%")))
-            ->latest()
+            ->when($sort === 'name', fn ($q) => $q->orderBy('name', 'asc'))
+            ->when($sort === 'barcode', fn ($q) => $q->orderBy('barcode', 'asc')->orderBy('sku', 'asc'))
+            ->when($sort === 'default', fn ($q) => $q->latest())
             ->get();
             
         $cols = $r->input('cols', ['product', 'barcode', 'units', 'main_stock', 'cost']);

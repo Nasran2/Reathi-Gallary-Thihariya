@@ -63,7 +63,7 @@
 <body onload="window.print()">
     <div class="container">
         <div class="header">
-            <div class="logo">{{ strtoupper(\App\Models\BusinessSetting::read('business_name', 'Store Name')) }}</div>
+            <div class="logo">{{ strtoupper(\App\Models\BusinessSetting::read('legal_name', 'Store Name')) }}</div>
             <div class="title">Products List</div>
             @if(request('q'))
             <div>Search: {{ request('q') }}</div>

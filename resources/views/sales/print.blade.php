@@ -102,7 +102,7 @@
 <body>
     <div class="receipt-container">
         <div class="header">
-            <div class="logo">{{ strtoupper(\App\Models\BusinessSetting::read('business_name', 'Store Name')) }}</div>
+            <div class="logo">{{ strtoupper(\App\Models\BusinessSetting::read('legal_name', 'Store Name')) }}</div>
             <div class="address">
                 Main Store<br>
                 {{ \App\Models\BusinessSetting::read('business_phone', '+94 77 123 4567') }}

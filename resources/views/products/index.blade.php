@@ -17,6 +17,9 @@
                         @if(request('q'))
                         <input type="hidden" name="q" value="{{ request('q') }}">
                         @endif
+                        @if(request('sort'))
+                        <input type="hidden" name="sort" value="{{ request('sort') }}">
+                        @endif
                         <div class="mb-5 space-y-2">
                             <p class="mb-3 text-sm text-slate-500">Select the columns to include in the report:</p>
                             <label class="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 p-3 text-sm font-medium normal-case tracking-normal text-slate-700 transition hover:bg-slate-50" style="margin-bottom: 0;">
@@ -54,8 +57,18 @@
     </div>
 </div>
 
-<form class="mb-5">
-    <input class="w-full max-w-md" name="q" value="{{ request('q') }}" placeholder="Search name, SKU or barcode…">
+<form class="mb-5 flex gap-2 w-full max-w-2xl">
+    <div class="flex-1 relative">
+        <input class="w-full pl-9" name="q" value="{{ request('q') }}" placeholder="Search name, SKU or barcode…">
+        <i class="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+    </div>
+    <div class="w-48 shrink-0">
+        <select name="sort" class="w-full" onchange="this.form.submit()">
+            <option value="default" @selected(request('sort') === 'default')>Sort by: Latest</option>
+            <option value="name" @selected(request('sort') === 'name')>Sort by: Name (A-Z)</option>
+            <option value="barcode" @selected(request('sort') === 'barcode')>Sort by: Barcode</option>
+        </select>
+    </div>
 </form>
 
 <div class="card overflow-x-auto">
