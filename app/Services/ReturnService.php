@@ -167,27 +167,26 @@ class ReturnService
                 
                 // Create a new Sale for the exchange
                 $saleData = [
+                    'idempotency_key' => 'EXC-'.$return->return_no,
                     'customer_id' => $customer?->id,
                     'store_id' => 1,
                     'sale_type' => 'main',
                     'notes' => 'Exchange from manual return: ' . $return->return_no,
-                    'global_discount_type' => 'fixed',
-                    'global_discount_value' => 0,
                     'items' => collect($data['exchange_items'])->map(function($ex) {
                         return [
                             'product_id' => $ex['product_id'],
                             'unit_id' => $ex['unit_id'],
                             'quantity' => $ex['quantity'],
                             'unit_price' => $ex['price'],
-                            'discount_type' => 'fixed',
-                            'discount_value' => 0,
+                            'discount_amount' => 0,
+                            'tax_amount' => 0,
                             'remnant_id' => null,
                         ];
                     })->toArray(),
                     'payments' => []
                 ];
                 
-                $exchangeSale = $saleService->create($saleData, 'EXC-'.$return->return_no, $userId);
+                $exchangeSale = $saleService->checkout($saleData, $userId);
                 
                 if ($exchangeTotal > (float) Decimal::money($total)) {
                     // Customer pays the difference
