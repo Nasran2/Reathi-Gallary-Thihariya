@@ -35,9 +35,14 @@ class PurchaseController extends Controller
             $q->where('supplier_id', $r->supplier_id);
         }
 
+        $methods = \App\Models\PaymentMethod::where('active', true)->whereNotIn('code', ['credit_due', 'cheque'])->orderBy('sort_order')->get();
+        $eligibleCheques = \App\Models\Cheque::with('customer')->where('direction', 'received')->whereIn('status', ['pending', 'endorsed'])->get()->filter(fn ($c) => (float) $c->remaining_amount > 0);
+
         return view('purchases.index', [
             'purchases' => $q->paginate(20)->withQueryString(),
-            'suppliers' => Supplier::orderBy('name')->get()
+            'suppliers' => Supplier::orderBy('name')->get(),
+            'methods' => $methods,
+            'eligibleCheques' => $eligibleCheques
         ]);
     }
 
@@ -122,5 +127,56 @@ class PurchaseController extends Controller
         } catch (\Exception $e) {
             return redirect()->route('purchases.index')->with('error', 'Could not delete purchase: ' . $e->getMessage());
         }
+    }
+
+    public function edit(Purchase $purchase)
+    {
+        $this->authorize('purchases.create');
+        $methods = PaymentMethod::where('active', true)->whereNotIn('code', ['credit_due', 'cheque'])->orderBy('sort_order')->get();
+        $eligibleCheques = Cheque::with('customer')->where('direction', 'received')->whereIn('status', ['pending', 'endorsed'])->get()->filter(fn ($c) => (float) $c->remaining_amount > 0);
+        return view('purchases.form', [
+            'purchase' => $purchase->load('items.product.productUnits.unit', 'items.unit'),
+            'suppliers' => Supplier::where('active', 1)->get(), 
+            'stores' => Store::where('active', 1)->get(), 
+            'products' => Product::with('productUnits.unit', 'suppliers')->where('active', 1)->get(),
+            'methods' => $methods,
+            'eligibleCheques' => $eligibleCheques,
+            'categories' => \App\Models\Category::where('active', 1)->get(),
+            'baseUnits' => \App\Models\Unit::where('active', 1)->get()
+        ]);
+    }
+
+    public function update(Request $r, Purchase $purchase, PurchaseService $service)
+    {
+        $this->authorize('purchases.create');
+        $data = $r->validate([
+            'supplier_id' => 'required|exists:suppliers,id', 'store_id' => 'required|exists:stores,id', 
+            'supplier_invoice_no' => 'nullable|max:100', 'reference_no' => 'nullable|max:100', 
+            'purchase_date' => 'required|date', 'due_date' => 'nullable|date', 
+            'extra_cost_total' => 'nullable|numeric|min:0', 'notes' => 'nullable', 
+            'items' => 'required|array|min:1', 'items.*.product_id' => 'required|exists:products,id', 
+            'items.*.unit_id' => 'required|exists:units,id', 'items.*.quantity' => 'required|numeric|gt:0', 
+            'items.*.supplier_unit_cost' => 'required|numeric|min:0', 'items.*.system_unit_cost' => 'required|numeric|min:0', 'items.*.discount_amount' => 'nullable|numeric|min:0', 
+            'items.*.tax_amount' => 'nullable|numeric|min:0',
+        ]);
+        
+        try {
+            $updatedPurchase = $service->update($purchase, $data, $r->user()->id);
+            return redirect()->route('purchases.show', $updatedPurchase)->with('success', 'Purchase updated and stock adjusted.');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return redirect()->back()->withInput()->with('error', $e->getMessage());
+        } catch (\Exception $e) {
+            return redirect()->back()->withInput()->with('error', 'Could not update purchase: ' . $e->getMessage());
+        }
+    }
+
+    public function pdf(Purchase $purchase)
+    {
+        $purchase->load('items.product', 'items.unit', 'supplier', 'store');
+        
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('purchases.pdf', compact('purchase'));
+        $pdf->setPaper('a4', 'portrait');
+        
+        return $pdf->download('PurchaseOrder-' . $purchase->purchase_no . '.pdf');
     }
 }

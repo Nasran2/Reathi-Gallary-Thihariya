@@ -52,9 +52,10 @@ Route::middleware('auth')->group(function () {
     Route::post('/sales/returns', [ReturnController::class, 'storeSale'])->name('sales.returns.store')->middleware('permission:sales.return');
     Route::get('/sales/returns/manual', [ReturnController::class, 'createManualSaleReturn'])->name('sales.returns.manual')->middleware('permission:sales.return');
     Route::post('/sales/returns/manual', [ReturnController::class, 'storeManualSale'])->name('sales.returns.manual.store')->middleware('permission:sales.return');
-    Route::resource('purchases', PurchaseController::class)->only(['create', 'store'])->middleware('permission:purchases.create');
+    Route::resource('purchases', PurchaseController::class)->only(['create', 'store', 'edit', 'update'])->middleware('permission:purchases.create');
     Route::resource('purchases', PurchaseController::class)->only(['index', 'show'])->middleware('permission:purchases.view');
     Route::resource('purchases', PurchaseController::class)->only(['destroy'])->middleware('permission:purchases.cancel');
+    Route::get('/purchases/{purchase}/pdf', [PurchaseController::class, 'pdf'])->name('purchases.pdf')->middleware('permission:purchases.view');
     Route::resource('unit-presets', \App\Http\Controllers\UnitPresetController::class)->except(['show'])->middleware('permission:unit_presets.manage');
     Route::resource('sales', SaleController::class)->only(['index', 'show', 'edit', 'destroy'])->middleware('permission:sales.view');
     Route::get('/sales/{sale}/print', [SaleController::class, 'print'])->name('sales.print')->middleware('permission:sales.view');
