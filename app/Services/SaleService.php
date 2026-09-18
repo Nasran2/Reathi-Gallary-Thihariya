@@ -163,7 +163,7 @@ class SaleService
                 $paid = $grand;
             }
             $due = $grand->minus($paid);
-            if ($due->toScale(2, RoundingMode::HalfUp)->isGreaterThan(0) && empty($data['customer_id'])) {
+            if ($due->toScale(2, RoundingMode::HalfUp)->isGreaterThan(0) && empty($data['customer_id']) && empty($data['is_exchange'])) {
                 throw ValidationException::withMessages(['customer_id' => 'Select a customer for a credit/due sale.']);
             }
             $sale->update(['subtotal' => $subtotal, 'discount_total' => $discount, 'tax_total' => $tax, 'grand_total' => $grand, 'paid_total' => $paid, 'due_total' => $due, 'cost_total' => $costTotal, 'profit_total' => $profit]);

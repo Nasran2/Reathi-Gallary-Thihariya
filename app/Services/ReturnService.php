@@ -171,6 +171,7 @@ class ReturnService
                     'customer_id' => $customer?->id,
                     'store_id' => 1,
                     'sale_type' => 'main',
+                    'is_exchange' => true,
                     'notes' => 'Exchange from manual return: ' . $return->return_no,
                     'items' => collect($data['exchange_items'])->map(function($ex) {
                         return [
@@ -194,11 +195,8 @@ class ReturnService
                     $exchangeSale->payments()->create([
                         'payment_method_id' => $paymentMethod?->id,
                         'amount' => $diff,
-                        'payment_date' => $data['return_date'],
-                        'status' => 'completed',
-                        'note' => 'Paid difference for exchange'
+                        'reference' => 'Paid difference for exchange EXC-'.$return->return_no
                     ]);
-                    $exchangeSale->update(['due_total' => 0, 'paid_total' => $exchangeSale->paid_total + $diff]);
                     
                     if ($customer) {
                         $this->ledger->customer($customer, 'payment', 0, $diff, $exchangeSale, 'Paid difference for exchange EXC-'.$return->return_no, 0, $data['return_date']);
@@ -211,6 +209,8 @@ class ReturnService
                         $this->ledger->customer($customer, 'return_refund', $diff, 0, $return, 'Cash refund (Exchange difference) '.$return->return_no, 0, $data['return_date']);
                     }
                 }
+                
+                $exchangeSale->update(['due_total' => 0, 'paid_total' => $exchangeTotal]);
             }
 
             $return->update([
