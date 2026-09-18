@@ -59,7 +59,16 @@ class SupplierController extends Controller
 
     public function update(Request $r, Supplier $supplier)
     {
+        $oldOb = (float) $supplier->opening_balance;
         $supplier->update($this->validated($r));
+        $newOb = (float) $supplier->opening_balance;
+
+        $diff = $newOb - $oldOb;
+        if ($diff != 0 && $supplier->ledger()->exists()) {
+            \Illuminate\Support\Facades\DB::table('supplier_ledger')
+                ->where('supplier_id', $supplier->id)
+                ->update(['balance_after' => \Illuminate\Support\Facades\DB::raw("balance_after + ({$diff})")]);
+        }
 
         return back()->with('success', 'Supplier updated.');
     }
@@ -105,6 +114,9 @@ class SupplierController extends Controller
 
     private function validated(Request $r): array
     {
-        return $r->validate(['name' => 'required|max:150', 'company' => 'nullable|max:150', 'phone' => 'nullable|max:30', 'whatsapp' => 'nullable|max:30', 'email' => 'nullable|email', 'address' => 'nullable', 'tax_number' => 'nullable|max:100', 'opening_balance' => 'nullable|numeric', 'notes' => 'nullable']);
+        $data = $r->validate(['name' => 'required|max:150', 'company' => 'nullable|max:150', 'phone' => 'nullable|max:30', 'whatsapp' => 'nullable|max:30', 'email' => 'nullable|email', 'address' => 'nullable', 'tax_number' => 'nullable|max:100', 'opening_balance' => 'nullable|numeric', 'notes' => 'nullable']);
+        $data['opening_balance'] = $data['opening_balance'] ?? 0;
+        
+        return $data;
     }
 }
