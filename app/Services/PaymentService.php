@@ -192,4 +192,46 @@ class PaymentService
         $payment->update(['status' => 'cancelled', 'cancelled_at' => now()]);
         $this->ledger->supplier($payment->supplier, 'cheque_returned', 0, 0, $payment, $payment->reference, Decimal::of($payment->amount)->negated());
     }
+
+    public function reverseSupplierPayment(SupplierPayment $payment): void
+    {
+        if ($payment->status === 'cancelled') {
+            return;
+        }
+
+        foreach ($payment->allocations()->where('status', '!=', 'cancelled')->lockForUpdate()->get() as $allocation) {
+            $purchase = Purchase::lockForUpdate()->findOrFail($allocation->purchase_id);
+            if ($allocation->status === 'pending') {
+                $purchase->update([
+                    'pending_total' => Decimal::sub($purchase->pending_total, $allocation->amount, 4),
+                    'due_total' => Decimal::add($purchase->due_total, $allocation->amount, 4)
+                ]);
+            } else {
+                $purchase->update([
+                    'paid_total' => Decimal::sub($purchase->paid_total, $allocation->amount, 4),
+                    'due_total' => Decimal::add($purchase->due_total, $allocation->amount, 4)
+                ]);
+            }
+            $allocation->update(['status' => 'cancelled']);
+        }
+
+        $payment->update(['status' => 'cancelled', 'cancelled_at' => now()]);
+
+        if ($payment->cheque_id) {
+            $cheque = \App\Models\Cheque::find($payment->cheque_id);
+            if ($cheque && $cheque->status !== 'cancelled') {
+                app(\App\Services\ChequeService::class)->cancel($cheque, $payment->created_by);
+            }
+        } else {
+            $this->ledger->supplier(
+                $payment->supplier,
+                'payment_reversal',
+                $payment->amount,
+                0,
+                $payment,
+                'Payment Reversed',
+                Decimal::of($payment->amount)->negated()
+            );
+        }
+    }
 }

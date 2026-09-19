@@ -55,6 +55,7 @@ Route::middleware('auth')->group(function () {
     Route::resource('purchases', PurchaseController::class)->only(['create', 'store', 'edit', 'update'])->middleware('permission:purchases.create');
     Route::resource('purchases', PurchaseController::class)->only(['index', 'show'])->middleware('permission:purchases.view');
     Route::resource('purchases', PurchaseController::class)->only(['destroy'])->middleware('permission:purchases.cancel');
+    Route::post('/purchases/{purchase}/reset-payments', [PurchaseController::class, 'resetPayments'])->name('purchases.reset-payments')->middleware('permission:purchases.create');
     Route::get('/purchases/{purchase}/pdf', [PurchaseController::class, 'pdf'])->name('purchases.pdf')->middleware('permission:purchases.view');
     Route::resource('unit-presets', \App\Http\Controllers\UnitPresetController::class)->except(['show'])->middleware('permission:unit_presets.manage');
     Route::resource('sales', SaleController::class)->only(['index', 'show', 'edit', 'destroy'])->middleware('permission:sales.view');

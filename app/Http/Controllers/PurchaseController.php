@@ -116,6 +116,29 @@ class PurchaseController extends Controller
         return view('purchases.show', ['purchase' => $purchase->load('supplier', 'store', 'items.product', 'items.unit', 'paymentAllocations.payment.method', 'paymentAllocations.payment.cheque')]);
     }
 
+    public function resetPayments(Request $r, Purchase $purchase, PaymentService $payments)
+    {
+        $this->authorize('purchases.create');
+        
+        $allocations = \Illuminate\Support\Facades\DB::table('supplier_payment_allocations')
+            ->where('purchase_id', $purchase->id)
+            ->where('status', '!=', 'cancelled')
+            ->get();
+            
+        if ($allocations->isEmpty()) {
+            return back()->with('error', 'No active payments found to cancel.');
+        }
+
+        foreach ($allocations as $alloc) {
+            $payment = \App\Models\SupplierPayment::find($alloc->supplier_payment_id);
+            if ($payment && $payment->status !== 'cancelled') {
+                $payments->reverseSupplierPayment($payment);
+            }
+        }
+        
+        return back()->with('success', 'Payments cancelled successfully. You may now edit the purchase.');
+    }
+
     public function destroy(Purchase $purchase, PurchaseService $service)
     {
         $this->authorize('purchases.cancel');
@@ -146,7 +169,7 @@ class PurchaseController extends Controller
         ]);
     }
 
-    public function update(Request $r, Purchase $purchase, PurchaseService $service)
+    public function update(Request $r, Purchase $purchase, PurchaseService $service, PaymentService $payments, ChequeService $cheques)
     {
         $this->authorize('purchases.create');
         $data = $r->validate([
@@ -158,10 +181,43 @@ class PurchaseController extends Controller
             'items.*.unit_id' => 'required|exists:units,id', 'items.*.quantity' => 'required|numeric|gt:0', 
             'items.*.supplier_unit_cost' => 'required|numeric|min:0', 'items.*.system_unit_cost' => 'required|numeric|min:0', 'items.*.discount_amount' => 'nullable|numeric|min:0', 
             'items.*.tax_amount' => 'nullable|numeric|min:0',
+            'payments' => 'nullable|array',
+            'payments.*.payment_method_id' => 'required|exists:payment_methods,id',
+            'payments.*.amount' => 'required|numeric|min:0',
+            'payments.*.reference' => 'nullable|max:150',
+            'payments.*.cheque_number' => 'nullable|max:80',
+            'payments.*.bank' => 'nullable|max:120',
+            'payments.*.cheque_date' => 'nullable|date',
+            'payments.*.cheque_id' => 'nullable|exists:cheques,id',
         ]);
         
         try {
             $updatedPurchase = $service->update($purchase, $data, $r->user()->id);
+
+            // Process any new payments submitted during edit
+            foreach ($r->input('payments', []) as $payment) {
+                if (empty($payment['amount']) || $payment['amount'] <= 0) {
+                    continue;
+                }
+                $method = PaymentMethod::find($payment['payment_method_id']);
+                if (!$method) continue;
+                
+                $paymentData = $payment + [
+                    'supplier_id' => $updatedPurchase->supplier_id,
+                    'payment_date' => $data['purchase_date'],
+                    'allocation_mode' => 'manual',
+                    'allocations' => [$updatedPurchase->id => $payment['amount']],
+                ];
+                
+                if ($method->code === 'own_cheque') {
+                    $cheques->issue($paymentData + ['issue_date' => $data['purchase_date']], $r->user()->id);
+                } elseif ($method->code === 'endorsed_cheque') {
+                    $cheques->endorse(Cheque::findOrFail($payment['cheque_id']), $paymentData + ['transfer_date' => $data['purchase_date']], $r->user()->id);
+                } else {
+                    $payments->supplier($paymentData, 'cleared', null, $r->user()->id);
+                }
+            }
+
             return redirect()->route('purchases.show', $updatedPurchase)->with('success', 'Purchase updated and stock adjusted.');
         } catch (\Illuminate\Validation\ValidationException $e) {
             return redirect()->back()->withInput()->with('error', $e->getMessage());

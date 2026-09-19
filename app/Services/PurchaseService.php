@@ -88,7 +88,7 @@ class PurchaseService
     public function update(Purchase $purchase, array $data, ?int $userId = null): Purchase
     {
         return DB::transaction(function () use ($purchase, $data, $userId) {
-            if (DB::table('supplier_payment_allocations')->where('purchase_id', $purchase->id)->exists()) {
+            if (DB::table('supplier_payment_allocations')->where('purchase_id', $purchase->id)->where('status', '!=', 'cancelled')->exists()) {
                 throw ValidationException::withMessages(['purchase' => 'Cannot edit purchase because it has payments allocated to it. Please cancel the payments first.']);
             }
             
