@@ -65,6 +65,7 @@ $nav = [
         ['Daily Closing Report', 'reports.daily-closing', [], 'reports.daily_closing'],
         ['Daily Ledger Report', 'reports.ledger', [], 'reports.ledger'],
         ['Dead Stock', 'reports.dead', [], 'reports.dead_stock'],
+        ['Trending Products', 'reports.trending', [], 'reports.trending'],
     ], 'tabler-chart-bar'],
     ['Settings', [
         ['General Settings', 'settings.show', ['section' => 'general'], 'settings.general'],

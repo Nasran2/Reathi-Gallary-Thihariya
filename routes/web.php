@@ -155,4 +155,5 @@ Route::middleware('auth')->group(function () {
     Route::get('/reports/cheques', [ChequeController::class, 'index'])->name('reports.cheques')->middleware('permission:reports.cheques');
     Route::get('/reports/daily-closing', [ReportController::class, 'dailyClosing'])->name('reports.daily-closing')->middleware('permission:reports.daily_closing');
     Route::get('/reports/ledger', [ReportController::class, 'ledger'])->name('reports.ledger')->middleware('permission:reports.ledger');
+    Route::get('/reports/trending-products', [ReportController::class, 'trendingProducts'])->name('reports.trending')->middleware('permission:reports.trending|reports.sales');
 });

@@ -75,7 +75,7 @@ return [
             'reports.purchase' => 'View purchase report', 'reports.expenses' => 'View expense report',
             'reports.customer_due' => 'View customer due report', 'reports.supplier_due' => 'View supplier due report',
             'reports.cheques' => 'View cheque report', 'reports.daily_closing' => 'View daily closing report',
-            'reports.ledger' => 'View daily ledger report',
+            'reports.ledger' => 'View daily ledger report', 'reports.trending' => 'View trending sales products report',
         ],
         'Settings' => [
             'settings.general' => 'Manage general settings', 'settings.business' => 'Manage business settings',

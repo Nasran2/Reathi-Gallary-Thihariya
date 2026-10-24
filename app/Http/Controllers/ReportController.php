@@ -227,8 +227,8 @@ class ReportController extends Controller
             $returnsQuery->whereBetween('return_date', [$from->startOfDay(), $to->endOfDay()]);
         }
         $returnsList = $returnsQuery->get();
-        
         $salesList = $salesQuery->get();
+        $expensesList = $expensesQuery->get();
 
         $sales = $salesList->map(function($sale) {
             $methods = collect($sale->payments)->map(function($p) {
@@ -239,92 +239,153 @@ class ReportController extends Controller
             })->filter()->unique('code')->values()->all();
             
             return (object)[
-                'date' => $sale->sold_at,
+                'date' => $sale->sold_at instanceof \Carbon\Carbon ? $sale->sold_at : \Carbon\Carbon::parse($sale->sold_at),
                 'type' => 'Sale',
                 'reference' => $sale->invoice_no,
                 'description' => 'Sale to ' . ($sale->customer->name ?? 'Walk-in'),
-                'incoming' => $sale->grand_total,
+                'incoming' => (float) $sale->grand_total,
                 'outgoing' => 0,
                 'methods' => $methods,
             ];
         });
 
-        $expenses = $expensesQuery->get()->map(function($expense) {
+        $expenses = $expensesList->map(function($expense) {
             $methods = [];
             if ($expense->paymentMethod && strtolower($expense->paymentMethod->code) !== 'cash') {
                 $methods[] = (object)['code' => $expense->paymentMethod->code, 'name' => $expense->paymentMethod->name];
             }
             return (object)[
-                'date' => $expense->expense_date,
+                'date' => $expense->expense_date instanceof \Carbon\Carbon ? $expense->expense_date : \Carbon\Carbon::parse($expense->expense_date),
                 'type' => 'Expense',
                 'reference' => 'EXP-'.str_pad($expense->id, 5, '0', STR_PAD_LEFT),
                 'description' => $expense->category->name ?? 'Expense',
                 'incoming' => 0,
-                'outgoing' => $expense->amount,
+                'outgoing' => (float) $expense->amount,
                 'methods' => $methods,
             ];
         });
 
         $refunds = $returnsList->map(function($return) {
             return (object)[
-                'date' => $return->return_date,
+                'date' => $return->return_date instanceof \Carbon\Carbon ? $return->return_date : \Carbon\Carbon::parse($return->return_date),
                 'type' => 'Cash Refund',
                 'reference' => $return->return_no,
                 'description' => 'Return Refund ' . ($return->is_manual ? '(Manual) ' : '') . 'to ' . ($return->customer->name ?? 'Walk-in'),
                 'incoming' => 0,
-                'outgoing' => $return->refund_amount,
+                'outgoing' => (float) $return->refund_amount,
                 'methods' => [], // Default Cash
             ];
         });
 
-        $cardFeeTotal = 0;
+        // 1. Calculate Card Fees / Bank Charges from sales payments
+        $salesCardFeeTotal = 0;
         foreach ($salesList as $sale) {
             foreach ($sale->payments as $payment) {
                 if ($payment->method && $payment->method->bank_charge_percentage > 0) {
-                    $cardFeeTotal += $payment->amount * ($payment->method->bank_charge_percentage / 100);
+                    $salesCardFeeTotal += (float) $payment->amount * ((float) $payment->method->bank_charge_percentage / 100);
                 }
             }
         }
 
-        if ($cardFeeTotal > 0) {
+        // 2. Identify Bank Charges already recorded in Expenses
+        $isBankCharge = function($expense) {
+            $catName = strtolower($expense->category->name ?? '');
+            $desc = strtolower($expense->description ?? '');
+            return $catName === 'bank charges' || str_contains($desc, 'card fee') || str_contains($desc, 'bank charge') || str_contains($desc, 'bank fee');
+        };
+
+        $bankChargesInExpenses = $expensesList->filter($isBankCharge);
+        $recordedBankCharges = (float) $bankChargesInExpenses->sum('amount');
+        $cardFeeTotal = max($salesCardFeeTotal, $recordedBankCharges);
+        $totalBankCharges = $cardFeeTotal;
+
+        // Only push unrecorded bank charges to the ledger if they haven't been stored in expenses table
+        $missingBankFee = $salesCardFeeTotal - $recordedBankCharges;
+        if ($missingBankFee > 0.01) {
             $expenses->push((object)[
                 'date' => $to ? $to->endOfDay() : now(),
                 'type' => 'Expense',
                 'reference' => 'FEE-'.now()->format('Ymd'),
                 'description' => 'Payment Gateway / Card Fees',
                 'incoming' => 0,
-                'outgoing' => $cardFeeTotal,
+                'outgoing' => $missingBankFee,
                 'methods' => [(object)['code' => 'card', 'name' => 'Card']],
             ]);
         }
 
+        // Operational Expenses without bank charges
+        $expensesWithoutBankCharges = (float) $expensesList->reject($isBankCharge)->sum('amount');
+
         $ledger = $sales->concat($expenses)->concat($refunds)->sortBy('date')->values();
         
-        $totalIncoming = $ledger->sum('incoming');
-        $totalOutgoing = $ledger->sum('outgoing');
+        $totalIncoming = (float) $ledger->sum('incoming');
+        $totalOutgoing = (float) $ledger->sum('outgoing');
         $netTotal = $totalIncoming - $totalOutgoing;
         
-        $totalDue = $salesList->sum('due_total');
+        $totalDue = (float) $salesList->sum('due_total');
         $cardTotal = 0;
         $bankTotal = 0;
-        $cashTotal = 0;
+        $cashCollection = 0;
+        $chequeTotal = 0;
         
         foreach ($salesList as $sale) {
             foreach ($sale->payments as $payment) {
-                $code = optional($payment->method)->code;
+                $code = strtolower(optional($payment->method)->code ?? '');
+                $amount = (float) $payment->amount;
                 if ($code === 'card') {
-                    $cardTotal += $payment->amount;
-                } elseif ($code === 'bank_transfer') {
-                    $bankTotal += $payment->amount;
+                    $cardTotal += $amount;
+                } elseif ($code === 'bank_transfer' || $code === 'bank') {
+                    $bankTotal += $amount;
                 } elseif ($code === 'cash') {
-                    $cashTotal += $payment->amount;
+                    $cashCollection += $amount;
+                } elseif (in_array($code, ['cheque', 'own_cheque', 'endorsed_cheque'])) {
+                    $chequeTotal += $amount;
                 }
             }
         }
-        
-        $cashTotal -= $returnsList->sum('refund_amount');
 
-        return $this->render($r, 'reports.ledger', compact('ledger', 'totalIncoming', 'totalOutgoing', 'netTotal', 'totalDue', 'cardTotal', 'bankTotal', 'cashTotal', 'cardFeeTotal', 'from', 'to'), 'Daily Ledger Report');
+        // Cash drawer deductions: Cash Expenses & Cash Refunds
+        $cashExpenses = (float) $expensesList->filter(function($expense) {
+            $code = strtolower(optional($expense->paymentMethod)->code ?? '');
+            return $code === 'cash';
+        })->sum('amount');
+
+        $cashRefunds = (float) $returnsList->sum('refund_amount');
+
+        // Final Cash in Hand / Cash Balance: Cash Collection minus Cash Expenses and Cash Refunds
+        $cashBalance = $cashCollection - $cashExpenses - $cashRefunds;
+        $cashTotal = $cashBalance; // Keep backward compatibility
+
+        $extraCss = '
+            .summary-grid { display: block; width: 100%; margin-bottom: 20px; }
+            .summary-card { float: left; width: 22.8%; margin: 1%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; background: #f8fafc; font-family: sans-serif; }
+            .summary-clearfix:after { content: ""; display: table; clear: both; }
+            .card-title { font-size: 8px; font-weight: bold; text-transform: uppercase; margin-bottom: 2px; color: #475569; }
+            .card-note { font-size: 7.5px; margin-bottom: 4px; color: #64748b; }
+            .card-val { font-size: 13px; font-weight: bold; color: #0f172a; }
+        ';
+
+        return $this->render($r, 'reports.ledger', compact(
+            'ledger',
+            'totalIncoming',
+            'totalOutgoing',
+            'netTotal',
+            'totalDue',
+            'cardTotal',
+            'bankTotal',
+            'chequeTotal',
+            'cashCollection',
+            'cashExpenses',
+            'cashRefunds',
+            'cashBalance',
+            'cashTotal',
+            'cardFeeTotal',
+            'totalBankCharges',
+            'expensesWithoutBankCharges',
+            'from',
+            'to',
+            'extraCss'
+        ), 'Daily Ledger Report');
     }
 
     public function profit(Request $r)
@@ -436,5 +497,133 @@ class ReportController extends Controller
         $to = now();
 
         return $this->render($r, 'reports.dead-stock', compact('products', 'days', 'categories', 'from', 'to'), 'Dead Stock Report');
+    }
+
+    public function trendingProducts(Request $r)
+    {
+        if (!auth()->user()->can('reports.trending') && !auth()->user()->can('reports.sales') && !auth()->user()->hasRole('admin')) {
+            abort(403);
+        }
+
+        [$from, $to] = $this->dates($r);
+        // Default to last 30 days if no custom dates are specified
+        if (!$r->has('from') && !$r->has('to')) {
+            $from = now()->subDays(30)->startOfDay();
+            $to = now()->endOfDay();
+        }
+
+        $sortBy = $r->get('sort_by', 'quantity');
+        $sortDir = strtolower($r->get('direction', 'desc')) === 'asc' ? 'asc' : 'desc';
+        $limit = $r->get('limit', '50');
+
+        $query = SaleItem::query()
+            ->join('sales', 'sales.id', '=', 'sale_items.sale_id')
+            ->join('products', 'products.id', '=', 'sale_items.product_id')
+            ->leftJoin('categories', 'categories.id', '=', 'products.category_id')
+            ->leftJoin('units', 'units.id', '=', 'products.base_unit_id')
+            ->where('sales.status', 'completed');
+
+        if ($from && $to) {
+            $query->whereBetween('sales.sold_at', [$from->startOfDay(), $to->endOfDay()]);
+        }
+
+        if ($r->filled('category_id')) {
+            $query->where('products.category_id', $r->category_id);
+        }
+
+        if ($r->filled('search')) {
+            $search = trim($r->search);
+            $query->where(function($q) use ($search) {
+                $q->where('products.name', 'like', "%{$search}%")
+                  ->orWhere('products.sku', 'like', "%{$search}%")
+                  ->orWhere('products.barcode', 'like', "%{$search}%");
+            });
+        }
+
+        $query->selectRaw('
+            products.id as product_id,
+            products.name as product_name,
+            products.sku,
+            products.barcode,
+            products.main_selling_price,
+            products.average_cost,
+            categories.name as category_name,
+            units.name as unit_name,
+            COALESCE((SELECT SUM(quantity) FROM inventory_balances WHERE inventory_balances.product_id = products.id), 0) as current_stock,
+            SUM(sale_items.quantity) as total_qty_sold,
+            SUM(sale_items.base_quantity) as total_base_qty_sold,
+            SUM(sale_items.net_revenue) as total_revenue,
+            SUM(sale_items.cost_total) as total_cost,
+            SUM(sale_items.profit) as total_profit,
+            COUNT(DISTINCT sales.id) as orders_count,
+            MAX(sales.sold_at) as last_sold_at
+        ')
+        ->groupBy(
+            'products.id',
+            'products.name',
+            'products.sku',
+            'products.barcode',
+            'products.main_selling_price',
+            'products.average_cost',
+            'categories.name',
+            'units.name'
+        );
+
+        if ($sortBy === 'revenue') {
+            $query->orderBy('total_revenue', $sortDir);
+        } elseif ($sortBy === 'profit') {
+            $query->orderBy('total_profit', $sortDir);
+        } elseif ($sortBy === 'orders') {
+            $query->orderBy('orders_count', $sortDir);
+        } else {
+            $query->orderBy('total_qty_sold', $sortDir);
+        }
+
+        $daysInPeriod = ($from && $to) ? max(1, $from->diffInDays($to) + 1) : 30;
+
+        $allTrending = $query->get();
+
+        $totalUnitsSold = (float) $allTrending->sum('total_qty_sold');
+        $totalRevenue = (float) $allTrending->sum('total_revenue');
+        $totalProfit = (float) $allTrending->sum('total_profit');
+        $overallMargin = $totalRevenue > 0 ? (($totalProfit / $totalRevenue) * 100) : 0;
+        $topProduct = $allTrending->first();
+
+        $trendingProducts = ($limit !== 'all' && is_numeric($limit)) 
+            ? $allTrending->take((int) $limit) 
+            : $allTrending;
+
+        $trendingProducts = $trendingProducts->map(function($item, $index) use ($daysInPeriod, $totalUnitsSold) {
+            $item->rank = $index + 1;
+            $item->daily_velocity = $daysInPeriod > 0 ? ((float) $item->total_qty_sold / $daysInPeriod) : (float) $item->total_qty_sold;
+            $item->profit_margin = (float) $item->total_revenue > 0 ? (((float) $item->total_profit / (float) $item->total_revenue) * 100) : 0;
+            $item->avg_price = (float) $item->total_qty_sold > 0 ? ((float) $item->total_revenue / (float) $item->total_qty_sold) : 0;
+            $item->volume_share = $totalUnitsSold > 0 ? (((float) $item->total_qty_sold / $totalUnitsSold) * 100) : 0;
+            return $item;
+        });
+
+        $categories = Category::where('active', 1)->orderBy('name')->get();
+
+        $extraCss = '
+            .summary-table { width: 100%; border-collapse: separate; border-spacing: 6px; margin-bottom: 15px; }
+            .summary-table td { padding: 10px; border-radius: 6px; vertical-align: top; }
+        ';
+
+        return $this->render($r, 'reports.trending-products', compact(
+            'trendingProducts',
+            'categories',
+            'from',
+            'to',
+            'sortBy',
+            'sortDir',
+            'limit',
+            'totalUnitsSold',
+            'totalRevenue',
+            'totalProfit',
+            'overallMargin',
+            'topProduct',
+            'daysInPeriod',
+            'extraCss'
+        ), 'Trending Sales Products Report', 'landscape');
     }
 }
